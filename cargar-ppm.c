@@ -16,7 +16,7 @@ int load_ppm(char *file, unsigned char **bufferptr, int *dimxptr, int * dimyptr)
         *bufferptr = (unsigned char *)0;
         return(-1);
         }
-    /* fitxategi formatua irakurtzera */
+    /* leer el formato del archivo */
 luz =fscanf(obj_file, "%[^\n]\n", line);
 if ( luz > 1) 
     {
@@ -31,7 +31,7 @@ if ( luz > 1)
         return(-1);
         }
     }
-    /* fitxategi neurria irakurtzera */
+    /* leer el tamaño del archivo */
 luz =fscanf(obj_file, "%[^\n]\n", line);
 if (luz>0) 
     {
@@ -47,7 +47,7 @@ if (luz>0)
         return(-1);
         }
     }
-    /* fitxategitik kolore adierazpena irakurtzera */
+    /* leer la expresión de color del archivo */
 luz =fscanf(obj_file, "%[^\n]\n", line);
 if (luz>0) 
     {

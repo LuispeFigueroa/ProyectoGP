@@ -1,12 +1,12 @@
-//	Program developed by
+//	Programa desarrollado por
 //
-//	Informatika Fakultatea
-//	Euskal Herriko Unibertsitatea
+//	Facultad de Informática
+//	Universidad del País Vasco
 //	http://www.ehu.eus/if
 //
-// to compile it: gcc dibujar-triangulos-y-objetos.c cargar-ppm.c load_obj_joseba.c -lGL -lGLU -lglut -lm
+// para compilarlo: gcc dibujar-triangulos-y-objetos.c cargar-ppm.c load_obj_joseba.c -lGL -lGLU -lglut -lm
 //
-//  or simply:    gcc *.c -lGL -lGLU -lglut -lm
+//  o simplemente:    gcc *.c -lGL -lGLU -lglut -lm
 //
 
 #include <GL/glut.h>
@@ -16,7 +16,6 @@
 // #include "cargar-triangulo.h"
 #include "obj.h"
 
-// testuraren informazioa
 // información de textura
 
 extern int load_ppm(char *file, unsigned char **bufferptr, int *dimxptr, int *dimyptr);
@@ -41,7 +40,7 @@ char fitxiz[100];
 int atzearpegiakmarraztu;
 
 // TODO  m = m1 * m2
-// m1 bider m2 matrizeen biderketa egin eta m matrizean jaso.
+// Multiplicar m1 por m2 y guardar el resultado en la matriz m.
 void mxm(double *m, double *m1, double *m2)
 {
 }
@@ -66,15 +65,15 @@ void objektuari_aldaketa_sartu_esk(double m[16])
 {
 }
 
-// TODO given u,v get the color pointer
+// TODO dado u,v obtener el puntero al color
 unsigned char *color_textura(float u, float v)
 {
     int indx, indy;
     char *lag;
     // printf("texturan...%x\n",bufferra);
-    // TODO get the desplacement for indx and indy
-    //  negative values?
-    //  values greater than 1?
+    // TODO obtener el desplazamiento para indx e indy
+    //  ¿valores negativos?
+    //  ¿valores mayores que 1?
     indx = 0;
     indy = 0;
     lag = (unsigned char *)bufferra;
@@ -91,8 +90,8 @@ void print_matrizea16(double *m)
 }
 
 // TODO  res = m * v
-// v bektoreari m matrizea bidertu eta res erakusleak adierazten duen bektorean jaso.
-// v bektorearen eta res emaitzaren laugarren osagaia 0 dela suposatzen du.
+// Multiplicar el vector v por la matriz m y guardar el resultado en el vector señalado por res.
+// Se supone que el cuarto componente del vector v y del resultado res es 0.
 void mxv(double *res, double *m, double *v)
 {
     res[0] = v[0];
@@ -101,9 +100,9 @@ void mxv(double *res, double *m, double *v)
 }
 
 // TODO  pptr = m * p
-// ppuntuari m matrizea bidertu eta pptr erakulseak adierazten duen puntuan jaso.
-// p puntuaren laugarren osagaia 1 dela suposatzen du.
-// matrizearen laugarren lerroaren arabera emaitzaren laugarren osagaia, w, ez bada 1, orduan bere baliokidea itzuli behar du: x/w, y/w eta z/w
+// Multiplicar el punto p por la matriz m y guardar el resultado en el punto señalado por pptr.
+// Se supone que el cuarto componente del punto p es 1.
+// Si según la cuarta fila de la matriz el cuarto componente del resultado, w, no es 1, entonces hay que devolver su equivalente: x/w, y/w y z/w
 void mxp(point3 *pptr, double m[16], point3 p)
 {
     pptr->x = p.x;
@@ -111,36 +110,36 @@ void mxp(point3 *pptr, double m[16], point3 p)
     pptr->z = p.z;
 }
 
-// TODO objektuaren erpinek eta bektore normalek kameraren erreferentzi-sisteman dituzten koordenatuak lortu
+// TODO obtener las coordenadas que tienen los vértices y los vectores normales del objeto en el sistema de referencia de la cámara
 void kam_ikuspegia_lortu(object3d *optr)
 {
     int i;
 
-    // TODO  get point in the viewer coordenate-system and project it
-    // TODO get the vectors in camera system-
+    // TODO  obtener el punto en el sistema de coordenadas del observador y proyectarlo
+    // TODO obtener los vectores en el sistema de la cámara
     for (i = 0; i < optr->num_vertices; i++)
     {
-        // TODO aldatu
-        //  get viewer coordinates
+        // TODO modificar
+        //  obtener las coordenadas del observador
         optr->vertex_table[i].camcoord.x = optr->vertex_table[i].coord.x;
         optr->vertex_table[i].camcoord.y = optr->vertex_table[i].coord.y;
         optr->vertex_table[i].camcoord.z = optr->vertex_table[i].coord.z;
-        // TODO aldatu
-        // Get projected coordinates
+        // TODO modificar
+        // Obtener las coordenadas proyectadas
         optr->vertex_table[i].proedcoord.x = optr->vertex_table[i].camcoord.x;
         optr->vertex_table[i].proedcoord.y = optr->vertex_table[i].camcoord.y;
         optr->vertex_table[i].proedcoord.z = optr->vertex_table[i].camcoord.z;
-        // TODO aldatu
-        // get normal vector in camera coordinates
+        // TODO modificar
+        // obtener el vector normal en las coordenadas de la cámara
         optr->vertex_table[i].Ncam[0] = optr->vertex_table[i].N[0];
         optr->vertex_table[i].Ncam[1] = optr->vertex_table[i].N[1];
         optr->vertex_table[i].Ncam[2] = optr->vertex_table[i].N[2];
     }
 
-    // TODO get the face normal in the viewer coordenate-system
+    // TODO obtener la normal de la cara en el sistema de coordenadas del observador
     for (i = 0; i < optr->num_faces; i++)
     {
-        // TODO aldatu
+        // TODO modificar
         optr->face_table[i].Ncam[0] = optr->face_table[i].N[0];
         optr->face_table[i].Ncam[1] = optr->face_table[i].N[1];
         optr->face_table[i].Ncam[2] = optr->face_table[i].N[2];
@@ -163,34 +162,34 @@ void draw_edge(object3d *optr, int ind1, int ind2, int atzeaurpegiada)
 {
     unsigned char *colorv;
 
-    // backfaces are drawn in red
-    // the colour for object without texture are in optr->rgb
-    // if the object has texture each pixel must compute the colour: call to color_textura(u,v) to get it!
+    // las caras traseras (back-faces) se dibujan en rojo
+    // el color de los objetos sin textura está en optr->rgb
+    // si el objeto tiene textura, cada píxel debe calcular su color: ¡llamar a color_textura(u,v) para obtenerlo!
     if (atzeaurpegiada)
-    {                          // we know that back-faces must be drawn in red, because if atzeaurpegiakmarraztu is 0,
-                               // the function dibujar_poligono finishes withow drawing anything. And so, it does not call to
-                               // dibujar_triangulo  wich calls to draw_edge(). So we are here because back-faces must be drawn in red.
-        glColor3ub(255, 0, 0); // red
+    {                          // sabemos que las caras traseras deben dibujarse en rojo, porque si atzearpegiakmarraztu es 0,
+                               // la función dibujar_poligono termina sin dibujar nada. Por lo tanto, no llama a
+                               // dibujar_triangulo, que es quien llama a draw_edge(). Así que estamos aquí porque las caras traseras deben dibujarse en rojo.
+        glColor3ub(255, 0, 0); // rojo
     }
     else
     {
-        // if the object does not have texture, then the colour to be used is the colour of the object
+        // si el objeto no tiene textura, el color a usar es el color del objeto
         if (optr->texturaduna)
         {
-            // get the colour corresponding to (u,v) coordinates of the first point
-            // we will use these coordinates to catch its colour in the texture.
+            // obtener el color correspondiente a las coordenadas (u,v) del primer punto
+            // usaremos estas coordenadas para obtener su color en la textura.
             colorv = color_textura(optr->vertex_table[ind1].u, optr->vertex_table[ind1].v);
-            // set the colour to be used to draw next pixel(s)
+            // establecer el color que se usará para dibujar el/los siguiente(s) píxel(es)
             glColor3ub(colorv[0], colorv[1], colorv[2]);
         }
         else
         {
-            // if the object does not have any texture use the colour of the object.
+            // si el objeto no tiene ninguna textura, usar el color del objeto.
             glColor3ub(optr->rgb.r, optr->rgb.g, optr->rgb.b);
         }
     }
 
-    // draw the internal points of the edge.
+    // dibujar los puntos internos de la arista.
     point3 p1, p2;
     float dx, dy;
     float distancia;
@@ -200,9 +199,9 @@ void draw_edge(object3d *optr, int ind1, int ind2, int atzeaurpegiada)
     float x, y, z;
     float u, v;
 
-    // now we have to draw the pixels between ind1 vertex and ind2 vertex...
-    // use barycentric coordinates to interpolate the points in the edge.
-    // the coordinates to be taken into account are:
+    // ahora hay que dibujar los píxeles entre el vértice ind1 y el vértice ind2...
+    // usar coordenadas baricéntricas para interpolar los puntos de la arista.
+    // las coordenadas a tener en cuenta son:
     p1 = optr->vertex_table[ind1].proedcoord;
     p2 = optr->vertex_table[ind2].proedcoord;
 
@@ -247,16 +246,16 @@ void draw_edge(object3d *optr, int ind1, int ind2, int atzeaurpegiada)
     glEnd();
 }
 
-/* fidx is the face index
-** i1 if the face has more than 3 vertices there will be more than 1 triangle,
-** i1 indicates the ith triangle of the face:
-**  a.- The first vertex and the next two vertices form the first triangle, so
-        0, 1, 2 are the indices of the vertices and i1 will be 1
-    b.- the first vertex and the third and fourth vertices form the next triangle. So
-        0, 2, 3 are the indices and consequently 1i will be 2 (second triangle of the
-        face)
-    c.- 0, 3, 4 form the next triangle and so i1= 3...
-** atzeaurpegiada indicates that the face is a backface. Depending of the state of the aplication tha face will be drawn in red or it will not be drawn
+/* fidx es el índice de la cara
+** i1: si la cara tiene más de 3 vértices, habrá más de 1 triángulo,
+** i1 indica el triángulo i-ésimo de la cara:
+**  a.- El primer vértice y los dos vértices siguientes forman el primer triángulo, por lo que
+        0, 1, 2 son los índices de los vértices e i1 será 1
+    b.- el primer vértice y el tercer y cuarto vértices forman el siguiente triángulo. Así,
+        0, 2, 3 son los índices y, por lo tanto, i1 será 2 (segundo triángulo de la
+        cara)
+    c.- 0, 3, 4 forman el siguiente triángulo y así i1 = 3...
+** atzeaurpegiada indica que la cara es una cara trasera (backface). Según el estado de la aplicación, la cara se dibujará en rojo o no se dibujará
 */
 void dibujar_triangulo(object3d *optr, int fidx, int i1, int atzeaurpegiada)
 {
@@ -278,7 +277,7 @@ void dibujar_triangulo(object3d *optr, int fidx, int i1, int atzeaurpegiada)
     unsigned char r, g, b;
     unsigned char *colorv;
 
-    // triangeluaren hiru erpinak hartu
+    // tomar los tres vértices del triángulo
     ind0 = optr->face_table[fidx].vertex_ind_table[0];
     ind1 = optr->face_table[fidx].vertex_ind_table[i1];
     ind2 = optr->face_table[fidx].vertex_ind_table[i1 + 1];
@@ -287,60 +286,59 @@ void dibujar_triangulo(object3d *optr, int fidx, int i1, int atzeaurpegiada)
     p2ptr = &(optr->vertex_table[ind1].proedcoord);
     p3ptr = &(optr->vertex_table[ind2].proedcoord);
 
-    // Puntuz puntu marraztuko dut dena!!
-    // hasteko bi pixelen arteko distantzia gure munduan (-1 eta 1 arteko munduan) ze distantzia den kalkulatuko dut
+    // ¡Voy a dibujar todo punto por punto!
+    // para empezar, calcularé qué distancia hay entre dos píxeles en nuestro mundo (el mundo entre -1 y 1)
     pixeldist = 2.0 / (float)dimentsioa;
 
-    // lehenengo hiru erpinak ordenatu behar ditut
-    // TODO erpinak ordenatu!!!
+    // primero tengo que ordenar los tres vértices
+    // TODO ¡ordenar los vértices!!!
     pgoiptr = p1ptr;
     perdiptr = p2ptr;
     pbeheptr = p3ptr;
     indg = ind0;
     inde = ind1;
     indb = ind2;
-    // take the colour of the object
-    r = optr->rgb.r; // from double to unsigned char!
-    g = optr->rgb.g; // from double to unsigned char!
-    b = optr->rgb.b; // from double to unsigned char!
-    // set or change the colour that will be used to draw
+    // tomar el color del objeto
+    r = optr->rgb.r; // ¡de double a unsigned char!
+    g = optr->rgb.g; // ¡de double a unsigned char!
+    b = optr->rgb.b; // ¡de double a unsigned char!
+    // establecer o cambiar el color que se usará para dibujar
     glColor3ub(r, g, b);
 
-    // TODO change all!!! initially the code only draws 3 points (the vertices of the triangle).
-    //      nothing more is drawn.
-    //  draw the three vertices.
-    //  3 erpinak marraztu
+    // TODO ¡cambiar todo! inicialmente el código solo dibuja 3 puntos (los vértices del triángulo).
+    //      no se dibuja nada más.
+    //  dibujar los tres vértices.
     glBegin(GL_POINTS);
-    glColor3ub(255, 255, 255); // the vertices are drawn with white colour
+    glColor3ub(255, 255, 255); // los vértices se dibujan en color blanco
     glVertex3f(pgoiptr->x, pgoiptr->y, pgoiptr->z);
     glVertex3f(perdiptr->x, perdiptr->y, perdiptr->z);
     glVertex3f(pbeheptr->x, pbeheptr->y, pbeheptr->z);
     glEnd();
 
-    // the following code is not taken into account.. But it should be!
+    // el siguiente código no se tiene en cuenta.. ¡Pero debería tenerse!
 
-    // TODO draw the lines of the polygon. Ertzak marraztu
-    //  1-2 ertza
+    // TODO dibujar las líneas del polígono. Dibujar las aristas
+    //  arista 1-2
     draw_edge(optr, indg, indb, atzeaurpegiada);
-    // 1-3 ertza
+    // arista 1-3
     draw_edge(optr, indg, inde, atzeaurpegiada);
-    // 2-3 ertza
+    // arista 2-3
     draw_edge(optr, inde, indb, atzeaurpegiada);
-    // if the user wants only the limits of the triangles (only edges) the work is done.
+    // si el usuario solo quiere los límites de los triángulos (solo las aristas), el trabajo está hecho.
     if (lineak == 1)
         return;
 
-    // In othe case the triangle must be filled,
-    // fill the triangle drawing horizontall segments
-    // Segmentuz-segmentu marratzuko dut:
+    // En caso contrario hay que rellenar el triángulo,
+    // rellenar el triángulo dibujando segmentos horizontales
+    // Lo dibujaré segmento a segmento:
 
-    // TODO draw the segments of the triangle in two parts: the upper segments and lower segments.
+    // TODO dibujar los segmentos del triángulo en dos partes: los segmentos superiores y los inferiores.
 
-    // TODO draw upper segments: from upper vertex until midle vertex-
-    //      goiko erpinaren eta erdiko erpinaren arteko segmentu horizontalak marraztu
+    // TODO dibujar los segmentos superiores: desde el vértice superior hasta el vértice medio
+    //      dibujar los segmentos horizontales entre el vértice superior y el vértice medio
 
-    // TODO draw lower segments: from the midle to the lower vertex.
-    //      erdiko erpinaren eta beheko erpinaren arteko segmentu horizontalak marraztu
+    // TODO dibujar los segmentos inferiores: desde el vértice medio hasta el vértice inferior.
+    //      dibujar los segmentos horizontales entre el vértice medio y el vértice inferior
 
     return;
 }
@@ -353,28 +351,28 @@ void dibujar_poligono(object3d *optr, int ti)
 
     if (ti >= optr->num_faces)
         return;
-    // lehenengo hiru erpinekin kalkulatuko dut ikusgaitasuna.
+    // calcular la visibilidad con los primeros tres vértices.
     ind0 = optr->face_table[ti].vertex_ind_table[0];
     ind1 = optr->face_table[ti].vertex_ind_table[1];
     ind2 = optr->face_table[ti].vertex_ind_table[2];
 
-    // TODO erabaki marraztu behar den ala ez: ikuste bolumenetik kanpokoak ez marraztu
+    // TODO decidir si hay que dibujar o no: no dibujar lo que quede fuera del volumen de vista
 
     atzeaurpegiada = 0;
-    // TODO atze-aurpegia?
+    // TODO ¿es cara trasera?
     // atzeaurpegiada = ...
     if ((!atzearpegiakmarraztu) && atzeaurpegiada)
     {
-        // Back culling...
+        // Eliminación de caras traseras (back culling)...
         return;
     }
     if (optr->texturaduna == 0)
     {
-        // TODO erpin bakoitzaren kolorea kalkulatu: argien, kameraren eta objektuaren orientazioaren arabera.
+        // TODO calcular el color de cada vértice: según las luces, la cámara y la orientación del objeto.
         argien_kalkulua_egin(optr, ti);
     }
-    // honaino iritsi bada bere triangelu guztiak marraztu behar ditut
-    for (i = 1; i < (optr->face_table[ti].num_vertices - 1); i++) // triangeluka marraztu: 4 erpinekin bi triangelu, bostekin 3...
+    // si ha llegado hasta aquí, debo dibujar todos sus triángulos
+    for (i = 1; i < (optr->face_table[ti].num_vertices - 1); i++) // dibujar por triángulos: con 4 vértices, dos triángulos; con cinco, 3...
         dibujar_triangulo(optr, ti, i, atzeaurpegiada);
 }
 
@@ -385,12 +383,11 @@ static void marraztu(void)
     object3d *auxptr;
     double Fokudir[3];
 
-    // marrazteko objektuak behar dira
     // no se puede dibujar sin objetos
     if (foptr == 0)
         return;
 
-    // clear viewport...
+    // limpiar el viewport...
     if (objektuak == 1)
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     else
@@ -398,9 +395,9 @@ static void marraztu(void)
         if (denak == 0)
             glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     }
-    // TODO Ikuslearen edo kameraren erreferentzia-sistemara pasatzen duen matrizea lortu
+    // TODO obtener la matriz que pasa al sistema de referencia del observador o de la cámara
 
-    // TODO argiek kameraren ikuspegian duten informazioa eguneratu (bai kokapenak, bai direkzioak)
+    // TODO actualizar la información que tienen las luces en la vista de la cámara (tanto posiciones como direcciones)
 
     if (objektuak == 1)
     {
@@ -409,7 +406,7 @@ static void marraztu(void)
             // printf("objektuak marraztera\n");
             for (auxptr = foptr; auxptr != 0; auxptr = auxptr->hptr)
             {
-                // TODO objektua kamerak nola ikusten duen adierazi objektuaren egituan bertan.
+                // TODO indicar en la propia estructura del objeto cómo lo ve la cámara.
                 kam_ikuspegia_lortu(auxptr);
                 // printf("objektua kameraren ikuspegian daukat\n");
                 for (i = 0; i < auxptr->num_faces; i++)
@@ -420,7 +417,7 @@ static void marraztu(void)
         }
         else
         {
-            // TODO objektua kamerak nola ikusten duen adierazi objektuaren egituan bertan.
+            // TODO indicar en la propia estructura del objeto cómo lo ve la cámara.
             kam_ikuspegia_lortu(sel_ptr);
             for (i = 0; i < sel_ptr->num_faces; i++)
             {
@@ -430,7 +427,7 @@ static void marraztu(void)
     }
     else
     {
-        // TODO objektua kamerak nola ikusten duen adierazi objektuaren egituan bertan.
+        // TODO indicar en la propia estructura del objeto cómo lo ve la cámara.
         kam_ikuspegia_lortu(sel_ptr);
         dibujar_poligono(sel_ptr, indexx);
     }
@@ -477,7 +474,7 @@ void read_from_file(char *fitx, object3d **foptrptr)
         sel_ptr = optr;
         if (optr->texturaduna && (bufferra == 0))
         {
-            // we put the information of the texture in the buffer pointed by bufferra. The dimensions of the texture are loaded into dimx and dimy
+            // colocamos la información de la textura en el buffer señalado por bufferra. Las dimensiones de la textura se cargan en dimx y dimy
             retval = load_ppm("testura.ppm", &bufferra, &dimx, &dimy);
             if (retval != 1)
             {
@@ -493,94 +490,94 @@ void read_from_file(char *fitx, object3d **foptrptr)
 void x_aldaketa(int dir)
 {
 
-    if (kamera == 0) // objektua aldatzen ari naiz
+    if (kamera == 0) // estoy modificando el objeto
     {
         if (aldaketa == 'r')
         {
-            // rotate cos(5) = 0.99619469809174;  // cos(5)
+            // rotar cos(5) = 0.99619469809174;  // cos(5)
         }
         else
         {
-            // traslate: 0.02?
+            // trasladar: ¿0.02?
         }
     }
-    else if (kamera == 1) // kamera aldatzen ari naiz
+    else if (kamera == 1) // estoy modificando la cámara
     {
-        if (ald_lokala == 1) // hegaldi moduan ezker/eskuin begiratu (y-rekiko biraketa)
+        if (ald_lokala == 1) // en modo vuelo, mirar izquierda/derecha (rotación respecto a y)
         {
-            // TODO hegan egin
+            // TODO volar
         }
-        else // analisi moduan
+        else // en modo análisis
         {
             if (sel_ptr != 0)
             {
-                // aukeratutako objektua analizatu eskuinerago edo ezkerreragotik (biratuz!)
+                // analizar el objeto seleccionado más hacia la derecha o hacia la izquierda (¡girando!)
             }
         }
     }
-    else // argiak aldatzen
+    else // modificando las luces
     {
-        // eguzkia biratu edo bonbila mugitu
+        // girar el sol o mover la bombilla
     }
 }
 
 void y_aldaketa(int dir)
 {
 
-    if (kamera == 0) // objektua aldatzen ari naiz
+    if (kamera == 0) // estoy modificando el objeto
     {
         if (aldaketa == 'r')
         {
-            // rotate cos(5) = 0.99619469809174;  // cos(5)
+            // rotar cos(5) = 0.99619469809174;  // cos(5)
         }
         else
         {
-            // traslate: 0.02?
+            // trasladar: ¿0.02?
         }
     }
-    else if (kamera == 1) // kamera aldatzen ari naiz
+    else if (kamera == 1) // estoy modificando la cámara
     {
-        if (ald_lokala == 1) // hegaldi moduan ezker/eskuin begiratu (y-rekiko biraketa)
+        if (ald_lokala == 1) // en modo vuelo, mirar izquierda/derecha (rotación respecto a y)
         {
-            // TODO hegan egin
+            // TODO volar
         }
-        else // analisi moduan
+        else // en modo análisis
         {
             if (sel_ptr != 0)
             {
-                // aukeratutako objektua analizatu goragotik edo beheragotik (biratuz!)
+                // analizar el objeto seleccionado más desde arriba o desde abajo (¡girando!)
             }
         }
     }
-    else // argiak aldatzen
+    else // modificando las luces
     {
-        // eguzkia biratu edo bonbila mugitu
+        // girar el sol o mover la bombilla
     }
 }
 
 void z_aldaketa(int dir)
 {
-    if (kamera == 0) // objektuari aldaketa
+    if (kamera == 0) // modificación del objeto
     {
         if (aldaketa == 'r')
         {
-            // rotate cos(5) = 0.99619469809174;  // cos(5)
+            // rotar cos(5) = 0.99619469809174;  // cos(5)
         }
         else
         {
-            // translate
+            // trasladar
         }
     }
-    else // kamerari aldaketa
+    else // modificación de la cámara
         if (kamera == 1)
         {
-            // hegaldi moduan beti aurrera edo atzera mugitu kamera.
-            // analisi moduan traslazioa egin nahi bada objektura gerturatu (pasa gabe!! distantzia kontrolatu) edo urrutiratu
-            // analisi moduan biraketa (roll)
+            // en modo vuelo, mover siempre la cámara hacia delante o hacia atrás.
+            // en modo análisis, si se quiere hacer una traslación, acercarse al objeto (¡sin pasarse!! controlar la distancia) o alejarse
+            // en modo análisis, rotación (roll)
         }
-        else // argiak aldatzen
+        else // modificando las luces
         {
-            // bonbilla mugitu munduan edo eguzkia biratu?
+            // ¿mover la bombilla en el mundo o girar el sol?
         }
 }
 
@@ -620,7 +617,7 @@ void print_egoera()
         printf("objektuaren ikuspuntua erakusten ari zara (`C` sakatu kamerarenera pasatzeko)\n");
 }
 
-// This function will be called whenever the user pushes one key
+// Esta función se llamará cada vez que el usuario pulse una tecla
 static void teklatua(unsigned char key, int x, int y)
 {
     int retval;
@@ -630,11 +627,9 @@ static void teklatua(unsigned char key, int x, int y)
     switch (key)
     {
     case 13:
-        if (foptr != 0) // objekturik ez badago ezer ez du egin behar
-                        // si no hay objeto que no haga nada
+        if (foptr != 0) // si no hay objeto, no debe hacer nada
         {
-            indexx++; // azkena bada lehenengoa bihurtu
-                      // pero si es el último? hay que controlarlo!
+            indexx++; // si es el último, convertirlo en el primero (¡hay que controlarlo!)
             if (indexx == sel_ptr->num_faces)
             {
                 indexx = 0;
@@ -659,9 +654,9 @@ static void teklatua(unsigned char key, int x, int y)
             objektuak = 1;
         break;
     case 'c':
-        if (kamera == 0) // objektua aldatzen ari naiz.
+        if (kamera == 0) // estoy modificando el objeto.
         {
-            if (objektuaren_ikuspegia == 1) // objektuaren ikuspegian banago argiak aldatzera pasa naiteke, ez kamera aldatzera.
+            if (objektuaren_ikuspegia == 1) // si estoy en la vista del objeto, puedo pasar a modificar las luces, no a modificar la cámara.
             {
                 kamera = 2;
                 printf("argiak aldatzera zoaz (objektuaren ikuspegian zaude)\n");
@@ -669,7 +664,7 @@ static void teklatua(unsigned char key, int x, int y)
             else
             {
                 kamera = 1;
-                ald_lokala = 1; // hegaldi moduan jarriko naiz
+                ald_lokala = 1; // me pondré en modo vuelo
                 printf("kamera aldatzera zoaz (hegaldi moduan zaude)\n");
             }
         }
@@ -683,7 +678,7 @@ static void teklatua(unsigned char key, int x, int y)
             else
             {
                 kamera = 0;
-                ald_lokala = 1; // hegaldi moduan jarriko naiz
+                ald_lokala = 1; // me pondré en modo vuelo
                 printf("objektua aldatzera zoaz (aldaketa lokala daukazu) \n");
             }
         }
@@ -741,7 +736,7 @@ static void teklatua(unsigned char key, int x, int y)
         }
         break;
     case 'g':
-        if (objektuaren_ikuspegia == 0) // objektuaren ikuspegian aldaketa beti lokala izango da.
+        if (objektuaren_ikuspegia == 0) // en la vista del objeto, el cambio siempre será local.
         {
             if (ald_lokala == 1)
             {
@@ -791,7 +786,7 @@ static void teklatua(unsigned char key, int x, int y)
             paralelo = 1;
         }
         break;
-    case 's': // argiztapen suabizatua
+    case 's': // iluminación suavizada
         if (flatmode == 0)
         {
             flatmode = 1;
@@ -804,41 +799,41 @@ static void teklatua(unsigned char key, int x, int y)
         }
         break;
     case '1':
-        // Eguzkia piztu/itzali
+        // Encender/apagar el sol
         break;
     case '2':
-        // Bonbilla piztu/itzali
+        // Encender/apagar la bombilla
         break;
     case '3':
-        // objektuaren fokua piztu/itzali
+        // Encender/apagar el foco del objeto
         break;
     case '4':
-        // kameraren fokua piztu/itzali
+        // Encender/apagar el foco de la cámara
         break;
     case '+':
         if (kamera == 2)
-        { // Fokuen irekiera handitu
+        { // Aumentar la apertura de los focos
         }
         else
         {
             if (kamera == 1)
-            { // kameraren ikuste-bolumena handitu
+            { // Aumentar el volumen de vista de la cámara
             }
         }
         break;
     case '-':
         if (kamera == 2)
-        { // Fokuen irekiera txikitu
+        { // Reducir la apertura de los focos
         }
         else
         {
             if (kamera == 1)
-            { // kameraren ikuste-bolumena txikitu
+            { // Reducir el volumen de vista de la cámara
             }
         }
         break;
     case 'f':
-        /*Ask for file*/
+        /* Pedir archivo */
         printf("idatzi fitxategi izena\n");
         scanf("%s", &(fitxiz[0]));
         read_from_file(fitxiz, &foptr);
@@ -847,17 +842,16 @@ static void teklatua(unsigned char key, int x, int y)
             kamera_objektuari_begira();
         break;
     case 9:             /* <TAB> */
-        if (foptr != 0) // objekturik gabe ez du ezer egin behar
-                        // si no hay objeto no hace nada
+        if (foptr != 0) // si no hay objeto, no debe hacer nada
         {
             sel_ptr = sel_ptr->hptr;
-            /*The selection is circular, thus if we move out of the list we go back to the first element*/
+            /* La selección es circular, así que si salimos de la lista volvemos al primer elemento */
             if (sel_ptr == 0)
                 sel_ptr = foptr;
-            indexx = 0; // the selected polygon is the first one
+            indexx = 0; // el polígono seleccionado es el primero
             if ((ald_lokala == 0) && (kamera == 1))
             {
-                // kamera objektuari begira jarri behar da!!
+                // ¡hay que poner la cámara mirando al objeto!!
                 kamera_objektuari_begira();
             }
         }
@@ -869,7 +863,7 @@ static void teklatua(unsigned char key, int x, int y)
         printf("%d %c\n", key, key);
     }
     print_egoera();
-    // The screen must be drawn to show the new triangle
+    // Hay que redibujar la pantalla para mostrar el nuevo triángulo
     glutPostRedisplay();
 }
 
@@ -914,7 +908,7 @@ int main(int argc, char **argv)
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glEnable(GL_DEPTH_TEST); // activar el test de profundidad (Z-buffer)
     glDepthFunc(GL_GREATER);
-    glClearDepth(0.0); // Handiena marraztu
+    glClearDepth(0.0); // dibujar primero el más lejano (el mayor)
     // glMatrixMode(GL_PROJECTION);
     // glLoadIdentity();
     // glOrtho(-1.0, 1.0, -1.0, 1.0, 1.0, -1.0);
@@ -932,19 +926,19 @@ int main(int argc, char **argv)
     flatmode = 0;
     paralelo = 1;
     atzearpegiakmarraztu = 1;
-    // TODO kamera hasieratu kamera (0,0,2.5) kokapenean dago hasieran
+    // TODO inicializar la cámara: al principio está en la posición (0,0,2.5)
 
-    // TODO Argiak hasieratu
+    // TODO Inicializar las luces
 
     if (argc > 1)
         read_from_file(argv[1], &foptr);
     else
     {
-        // TODO erase mesages and exit code!!
+        // TODO ¡eliminar los mensajes y el código de salida!!
         printf("Aldatu kode zati hau!!!! edo exekutatu objektua daukan fitxategi-izen batekin\n");
         printf("    cambia el código!!!! ó ejecútalo con un objeto\n");
         exit(0);
-        // TODO load some object[s] by default
+        // TODO cargar algún objeto[s] por defecto
         /*
         read_from_file("abioia-1+1.obj",&foptr);
         if (sel_ptr != 0)

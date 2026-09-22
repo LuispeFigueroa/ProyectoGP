@@ -8,7 +8,7 @@
 #define MAXLINE 200
 
 /*
- * Auxiliar function to process each line of the file
+ * Función auxiliar para procesar cada línea del archivo
  */
 static int sreadint(char * lerroa, int * zenbakiak) {
     char *s = lerroa;
@@ -27,17 +27,17 @@ static int sreadint2(char * lerroa, int * zenbakiak) {
 
     while (sscanf(s, " %d%n", &zbk, &i) > 0) {
         s += i;
-	while ((*s != ' ')&&(*s !='\0')) s++;  // jump vector normal information
+	while ((*s != ' ')&&(*s !='\0')) s++;  // saltar la información del vector normal
         zenbakiak[kont++] = zbk;
     }
     //printf("%d numbers in the line\n",kont);
     return (kont);
 }
 /**
- * @brief Function to read wavefront files (*.obj)
- * @param file_name Path of the file to be read
- * @param object_ptr Pointer of the object3d type structure where the data will be stored
- * @return Result of the reading: 0=Read ok, 1=File not found, 2=Invalid file, 3=Empty file
+ * @brief Función para leer archivos wavefront (*.obj)
+ * @param file_name Ruta del archivo a leer
+ * @param object_ptr Puntero a la estructura de tipo object3d donde se guardarán los datos
+ * @return Resultado de la lectura: 0=Lectura correcta, 1=Archivo no encontrado, 2=Archivo no válido, 3=Archivo vacío
  */
 int read_wavefront(char * file_name, object3d * object_ptr) {
     vertex *vertex_table;
@@ -53,10 +53,10 @@ int read_wavefront(char * file_name, object3d * object_ptr) {
 
     koloreduna = 0;
     /*
-     * The function reads twice the file. In the first read the number of
-     * vertices and faces is obtained. Then, memory is allocated for each
-     * of them and in the second read the actual information is read and
-     * loaded. Finally, the object structure is created
+     * La función lee el archivo dos veces. En la primera lectura se obtiene
+     * el número de vértices y de caras. Después, se reserva memoria para
+     * cada uno de ellos y en la segunda lectura se lee y se carga la
+     * información real. Finalmente, se crea la estructura del objeto
      */
     if ((obj_file = fopen(file_name, "r")) == NULL) return (1);
     while (fscanf(obj_file, "\n%[^\n]", line) > 0) 
@@ -67,9 +67,9 @@ int read_wavefront(char * file_name, object3d * object_ptr) {
             {
             i += 2;
             j = 0;
-            // it is posible a line of the form "# number vertices" where "number" is a number
-            // it is posible a line of the form "# number elements" where "number" is a number
-            // it is posible a line of the form "# color r g b" where "r", "g" and "b" are numbers <256
+            // es posible una línea de la forma "# number vertices" donde "number" es un número
+            // es posible una línea de la forma "# number elements" donde "number" es un número
+            // es posible una línea de la forma "# color r g b" donde "r", "g" y "b" son números <256
             while (line[i] != ' ') line_1[j++] = line[i++];
             i++;
             line_1[j] = '\0';
@@ -130,9 +130,9 @@ int read_wavefront(char * file_name, object3d * object_ptr) {
     if (count_vertices == count_textures) texturaduna = 1;
         else 
           {
-          if (koloreduna == 0) // the object does not have texture nor colour!
+          if (koloreduna == 0) // ¡el objeto no tiene textura ni color!
               {
-              // set objects colour (white)
+              // asignar color al objeto (blanco)
               object_ptr->rgb.r = 255;
               object_ptr->rgb.g = 255;
               object_ptr->rgb.b = 255;
@@ -144,9 +144,9 @@ int read_wavefront(char * file_name, object3d * object_ptr) {
     face_table = (face *) malloc(num_faces * sizeof (face));
 
     obj_file = fopen(file_name, "r");
-    k = 0;  // num vertex
-    j = 0;  // num face
-    t = 0;  // num texture
+    k = 0;  // número de vértice
+    j = 0;  // número de cara
+    t = 0;  // número de textura
 
     for (i = 0; i < num_vertices; i++)
         vertex_table[i].num_faces = 0;
@@ -154,7 +154,7 @@ int read_wavefront(char * file_name, object3d * object_ptr) {
     while (fscanf(obj_file, "\n%[^\n]", line) > 0) {
         switch (line[0]) {
             case 'v':
-            if (line[1] == ' ')  // vn not interested
+            if (line[1] == ' ')  // vn no interesa
 		        {
                 sscanf(line + 2, "%lf%lf%lf", &(vertex_table[k].coord.x),
                         &(vertex_table[k].coord.y), &(vertex_table[k].coord.z));
@@ -162,7 +162,7 @@ int read_wavefront(char * file_name, object3d * object_ptr) {
 		        }
                break;
             case 't':
-            if (texturaduna && (line[1] == ' '))  // line of the form "t u v"
+            if (texturaduna && (line[1] == ' '))  // línea de la forma "t u v"
 		        {
                 sscanf(line + 2, "%lf%lf", &(vertex_table[t].u),
                         &(vertex_table[t].v));
@@ -171,7 +171,7 @@ int read_wavefront(char * file_name, object3d * object_ptr) {
                break;
 
             case 'f':
-	        if (line[1] == ' ') // fn not interested
+	        if (line[1] == ' ') // fn no interesa
                 {
                 for (i = 2; i <= (int) strlen(line); i++)
                     line_1[i - 2] = line[i];
@@ -196,7 +196,7 @@ int read_wavefront(char * file_name, object3d * object_ptr) {
     //printf("2 pasada\n");
 
     /*
-     * Information read is introduced in the structure */
+     * La información leída se introduce en la estructura */
     object_ptr->vertex_table = vertex_table;
     object_ptr->face_table = face_table;
     object_ptr->num_vertices = num_vertices;
@@ -205,7 +205,7 @@ int read_wavefront(char * file_name, object3d * object_ptr) {
 
 
     /*
-     * The maximum and minimum coordinates are obtained **/
+     * Se obtienen las coordenadas máximas y mínimas **/
     object_ptr->max.x = object_ptr->vertex_table[0].coord.x;
     object_ptr->max.y = object_ptr->vertex_table[0].coord.y;
     object_ptr->max.z = object_ptr->vertex_table[0].coord.z;

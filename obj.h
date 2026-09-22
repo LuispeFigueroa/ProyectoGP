@@ -1,11 +1,11 @@
 #ifndef OBJ_H
 #define OBJ_H
 
-/** STRUCTURES **/
+/** ESTRUCTURAS **/
 
 /****************************
- * Structure to store the   *
- * coordinates and texture coordinates of 3D points *
+ * Estructura para guardar  *
+ * las coordenadas y las coordenadas de textura de puntos 3D *
  ****************************/
 typedef struct punto
 {
@@ -13,8 +13,8 @@ typedef struct punto
 } punto;
 
 /****************************
- * Structure to store the   *
- * coordinates of 3D points *
+ * Estructura para guardar  *
+ * las coordenadas de puntos 3D *
  ****************************/
 typedef struct
 {
@@ -22,8 +22,8 @@ typedef struct
 } point3;
 
 /*****************************
- * Structure to store the    *
- * coordinates of 3D vectors *
+ * Estructura para guardar   *
+ * las coordenadas de vectores 3D *
  *****************************/
 typedef struct
 {
@@ -31,8 +31,8 @@ typedef struct
 } vector3;
 
 /****************************
- * Structure to store the   *
- * colors in RGB mode       *
+ * Estructura para guardar  *
+ * los colores en modo RGB  *
  ****************************/
 typedef struct
 {
@@ -40,8 +40,8 @@ typedef struct
 } color3;
 
 /****************************
- * Structure to store       *
- * the list of matices      *
+ * Estructura para guardar  *
+ * la lista de matrices     *
  ****************************/
 
 typedef struct mlist
@@ -51,64 +51,64 @@ typedef struct mlist
 } mlist;
 
 /***************************
- * Light
+ * Luz
  ***************************/
 
 typedef struct light
 {
     int onoff;
-    int type; // 0 -> directional, 1 -> positional, 2 -> spot light
+    int type; // 0 -> direccional, 1 -> posicional, 2 -> foco (spot light)
     color3 I;
-    double pos[3]; // positional or spot light
+    double pos[3]; // luz posicional o foco
     double campos[3];
-    double dir[3]; // directional or spot light
+    double dir[3]; // luz direccional o foco
     double camdir[3];
-    double aperture; // cos(ang) if  0 --> any position is iluminated.
-                     //   if (not 0) only the cone is iluminated.
+    double aperture; // cos(ang); si es 0 --> se ilumina cualquier posición.
+                     //   si no es 0, solo se ilumina el cono.
 } light;
 
 /****************************
- * Structure to store       *
- * objects' vertices         *
+ * Estructura para guardar  *
+ * los vértices de los objetos *
  ****************************/
 typedef struct
 {
-    point3 coord; /* coordinates,x, y, z */
+    point3 coord; /* coordenadas, x, y, z */
     point3 camcoord;
     point3 proedcoord;
     double u, v;
-    int num_faces; /* number of faces that share this vertex */
+    int num_faces; /* número de caras que comparten este vértice */
     double N[3];
     double Ncam[3];
     unsigned char rgb[3];
 } vertex;
 
 /****************************
- * Structure to store       *
- * objects' faces or        *
- * polygons                 *
+ * Estructura para guardar  *
+ * las caras o polígonos    *
+ * de los objetos           *
  ****************************/
 typedef struct
 {
-    int num_vertices;      /* number of vertices in the face */
-    int *vertex_ind_table; /* table with the index of each vertex */
+    int num_vertices;      /* número de vértices de la cara */
+    int *vertex_ind_table; /* tabla con el índice de cada vértice */
     double N[3];
     double Ncam[3];
     unsigned char rgb[3];
 } face;
 
 /****************************
- * Structure to store a     *
- * pile of 3D objects       *
+ * Estructura para guardar  *
+ * una pila de objetos 3D   *
  ****************************/
 struct object3d
 {
-    int num_vertices;     /* number of vertices in the object*/
-    vertex *vertex_table; /* table of vertices */
-    int num_faces;        /* number of faces in the object */
-    face *face_table;     /* table of faces */
-    point3 min;           /* coordinates' lower bounds */
-    point3 max;           /* coordinates' bigger bounds */
+    int num_vertices;     /* número de vértices del objeto */
+    vertex *vertex_table; /* tabla de vértices */
+    int num_faces;        /* número de caras del objeto */
+    face *face_table;     /* tabla de caras */
+    point3 min;           /* límites inferiores de las coordenadas */
+    point3 max;           /* límites superiores de las coordenadas */
     mlist *mptr;
     color3 rgb;
     color3 ka;
@@ -116,7 +116,7 @@ struct object3d
     color3 ks;
     int ns;
     int texturaduna;
-    struct object3d *hptr; /* next element in the pile of objects */
+    struct object3d *hptr; /* siguiente elemento de la pila de objetos */
 };
 
 typedef struct object3d object3d;
