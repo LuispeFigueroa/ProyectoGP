@@ -68,17 +68,25 @@ void objektuari_aldaketa_sartu_esk(double m[16])
 // TODO dado u,v obtener el puntero al color
 unsigned char *color_textura(float u, float v)
 {
-    int indx, indy;
-    char *lag;
-    // printf("texturan...%x\n",bufferra);
-    // TODO obtener el desplazamiento para indx e indy
-    //  ¿valores negativos?
-    //  ¿valores mayores que 1?
-    indx = 0;
-    indy = 0;
-    lag = (unsigned char *)bufferra;
-    // printf("irtetera %x\n",lag[indy*dimx+indx]);
-    return (lag + 3 * (indy * dimx + indx));
+    int indx;
+    int indy;
+
+    // coordenadas texturas dentro de 0-1
+    if (u < 0.0f)
+        u = 0.0f;
+    else if (u > 1.0f)
+        u = 1.0f;
+
+    if (v < 0.0f)
+        v = 0.0f;
+    else if (v > 1.0f)
+        v = 1.0f;
+
+    // convertir coordenadas de textura a coordenadas pixel
+    indx = (int)(u * (float)(dimx - 1));
+    indy = (int)((1.0f - v) * (float)(dimy - 1));
+
+    return bufferra + 3 * (indy * dimx + indx);
 }
 
 void print_matrizea16(double *m)
@@ -257,90 +265,247 @@ void draw_edge(object3d *optr, int ind1, int ind2, int atzeaurpegiada)
     c.- 0, 3, 4 forman el siguiente triángulo y así i1 = 3...
 ** atzeaurpegiada indica que la cara es una cara trasera (backface). Según el estado de la aplicación, la cara se dibujará en rojo o no se dibujará
 */
-void dibujar_triangulo(object3d *optr, int fidx, int i1, int atzeaurpegiada)
+void dibujar_triangulo(
+    object3d *optr,
+    int fidx,
+    int i1,
+    int atzeaurpegiada)
 {
-    point3 *pgoiptr, *pbeheptr, *perdiptr;
-    float x, y, z, u, v, nx, ny;
-    float luz, l12, l23, l13, d1v23, d2v13, d3v12;
-    float lerrotartea, pixeldist;
-    float alfa, beta, gamma;
-    float goieragina, beheeragina, erdieragina;
-    float *luzeptr, *erdiptr, *motzptr;
-    float luzeluz, paraleloarenluzera;
-    int luzeanparalelokop, barnekop;
-    int lerrokop, i, j;
-    int ind0, ind1, ind2, indg, inde, indb;
-    point3 *p1ptr, *p2ptr, *p3ptr;
-    double *Nkam;
-    double aldaketa, baldaketa;
-    float x1, x2, y1;
-    unsigned char r, g, b;
-    unsigned char *colorv;
+    int index0, index1, index2;
+    int topIndex, middleIndex, bottomIndex;
+    int tempIndex;
+    int rows, pixels;
+    int i, j;
 
-    // tomar los tres vértices del triángulo
-    ind0 = optr->face_table[fidx].vertex_ind_table[0];
-    ind1 = optr->face_table[fidx].vertex_ind_table[i1];
-    ind2 = optr->face_table[fidx].vertex_ind_table[i1 + 1];
+    point3 *top;
+    point3 *middle;
+    point3 *bottom;
+    point3 *tempPoint;
 
-    p1ptr = &(optr->vertex_table[ind0].proedcoord);
-    p2ptr = &(optr->vertex_table[ind1].proedcoord);
-    p3ptr = &(optr->vertex_table[ind2].proedcoord);
+    float pixelSize;
+    float t, s, q;
+    float tStep, qStep;
+    float x1, x2;
+    float z1, z2;
+    float x, y, z;
+    float alpha, beta, gamma;
+    float u, v;
 
-    // ¡Voy a dibujar todo punto por punto!
-    // para empezar, calcularé qué distancia hay entre dos píxeles en nuestro mundo (el mundo entre -1 y 1)
-    pixeldist = 2.0 / (float)dimentsioa;
+    unsigned char *textureColor;
 
-    // primero tengo que ordenar los tres vértices
-    // TODO ¡ordenar los vértices!!!
-    pgoiptr = p1ptr;
-    perdiptr = p2ptr;
-    pbeheptr = p3ptr;
-    indg = ind0;
-    inde = ind1;
-    indb = ind2;
-    // tomar el color del objeto
-    r = optr->rgb.r; // ¡de double a unsigned char!
-    g = optr->rgb.g; // ¡de double a unsigned char!
-    b = optr->rgb.b; // ¡de double a unsigned char!
-    // establecer o cambiar el color que se usará para dibujar
-    glColor3ub(r, g, b);
+    index0 = optr->face_table[fidx].vertex_ind_table[0];
+    index1 = optr->face_table[fidx].vertex_ind_table[i1];
+    index2 = optr->face_table[fidx].vertex_ind_table[i1 + 1];
 
-    // TODO ¡cambiar todo! inicialmente el código solo dibuja 3 puntos (los vértices del triángulo).
-    //      no se dibuja nada más.
-    //  dibujar los tres vértices.
-    glBegin(GL_POINTS);
-    glColor3ub(255, 255, 255); // los vértices se dibujan en color blanco
-    glVertex3f(pgoiptr->x, pgoiptr->y, pgoiptr->z);
-    glVertex3f(perdiptr->x, perdiptr->y, perdiptr->z);
-    glVertex3f(pbeheptr->x, pbeheptr->y, pbeheptr->z);
-    glEnd();
+    top = &(optr->vertex_table[index0].proedcoord);
+    middle = &(optr->vertex_table[index1].proedcoord);
+    bottom = &(optr->vertex_table[index2].proedcoord);
 
-    // el siguiente código no se tiene en cuenta.. ¡Pero debería tenerse!
+    topIndex = index0;
+    middleIndex = index1;
+    bottomIndex = index2;
 
-    // TODO dibujar las líneas del polígono. Dibujar las aristas
-    //  arista 1-2
-    draw_edge(optr, indg, indb, atzeaurpegiada);
-    // arista 1-3
-    draw_edge(optr, indg, inde, atzeaurpegiada);
-    // arista 2-3
-    draw_edge(optr, inde, indb, atzeaurpegiada);
-    // si el usuario solo quiere los límites de los triángulos (solo las aristas), el trabajo está hecho.
+    // Ordenar los puntos comparando cada y
+
+    if (top->y < middle->y)
+    {
+        tempPoint = top;
+        top = middle;
+        middle = tempPoint;
+
+        tempIndex = topIndex;
+        topIndex = middleIndex;
+        middleIndex = tempIndex;
+    }
+
+    if (top->y < bottom->y)
+    {
+        tempPoint = top;
+        top = bottom;
+        bottom = tempPoint;
+
+        tempIndex = topIndex;
+        topIndex = bottomIndex;
+        bottomIndex = tempIndex;
+    }
+
+    if (middle->y < bottom->y)
+    {
+        tempPoint = middle;
+        middle = bottom;
+        bottom = tempPoint;
+
+        tempIndex = middleIndex;
+        middleIndex = bottomIndex;
+        bottomIndex = tempIndex;
+    }
+
+    // dibujar los bordes con draw_edge()
+    draw_edge(optr, topIndex, middleIndex, atzeaurpegiada);
+    draw_edge(optr, middleIndex, bottomIndex, atzeaurpegiada);
+    draw_edge(optr, topIndex, bottomIndex, atzeaurpegiada);
+
     if (lineak == 1)
         return;
 
-    // En caso contrario hay que rellenar el triángulo,
-    // rellenar el triángulo dibujando segmentos horizontales
-    // Lo dibujaré segmento a segmento:
+    if (top->y == bottom->y)
+        return;
 
-    // TODO dibujar los segmentos del triángulo en dos partes: los segmentos superiores y los inferiores.
+    pixelSize = 2.0f / (float)dimentsioa;
 
-    // TODO dibujar los segmentos superiores: desde el vértice superior hasta el vértice medio
-    //      dibujar los segmentos horizontales entre el vértice superior y el vértice medio
+    if (atzeaurpegiada)
+        glColor3ub(255, 0, 0);
+    else
+        glColor3ub(optr->rgb.r, optr->rgb.g, optr->rgb.b);
 
-    // TODO dibujar los segmentos inferiores: desde el vértice medio hasta el vértice inferior.
-    //      dibujar los segmentos horizontales entre el vértice medio y el vértice inferior
+    glBegin(GL_POINTS);
 
-    return;
+    // primera mitad top a middle
+    if (top->y != middle->y)
+    {
+        rows = (int)ceilf((top->y - middle->y) / pixelSize);
+
+        if (rows < 1)
+            rows = 1;
+
+        tStep = 1.0f / (float)rows;
+
+        for (i = 0, t = 0.0f; i <= rows; i++, t += tStep)
+        {
+            if (i == rows)
+                t = 1.0f;
+
+            y = (1.0f - t) * top->y + t * middle->y;
+
+            x1 = (1.0f - t) * top->x + t * middle->x;
+
+            z1 = (1.0f - t) * top->z + t * middle->z;
+
+            s = (y - top->y) / (bottom->y - top->y);
+
+            x2 = (1.0f - s) * top->x + s * bottom->x;
+
+            z2 = (1.0f - s) * top->z + s * bottom->z;
+
+            pixels = (int)ceilf(fabsf(x2 - x1) / pixelSize);
+
+            if (pixels < 1)
+                pixels = 1;
+
+            qStep = 1.0f / (float)pixels;
+
+            for (j = 0, q = 0.0f; j <= pixels; j++, q += qStep)
+            {
+                if (j == pixels)
+                    q = 1.0f;
+
+                x = (1.0f - q) * x1 + q * x2;
+                z = (1.0f - q) * z1 + q * z2;
+
+                alpha = (1.0f - q) * (1.0f - t) + q * (1.0f - s);
+
+                beta = (1.0f - q) * t;
+
+                gamma = q * s;
+
+                if (optr->texturaduna && !atzeaurpegiada)
+                {
+                    u =
+                        alpha * optr->vertex_table[topIndex].u +
+                        beta * optr->vertex_table[middleIndex].u +
+                        gamma * optr->vertex_table[bottomIndex].u;
+
+                    v =
+                        alpha * optr->vertex_table[topIndex].v +
+                        beta * optr->vertex_table[middleIndex].v +
+                        gamma * optr->vertex_table[bottomIndex].v;
+
+                    textureColor = color_textura(u, v);
+
+                    glColor3ub(
+                        textureColor[0],
+                        textureColor[1],
+                        textureColor[2]);
+                }
+
+                glVertex3f(x, y, z);
+            }
+        }
+    }
+
+    // segunda mitad middle a bottom
+    if (middle->y != bottom->y)
+    {
+        rows = (int)ceilf((middle->y - bottom->y) / pixelSize);
+
+        if (rows < 1)
+            rows = 1;
+
+        tStep = 1.0f / (float)rows;
+
+        for (i = 0, t = 0.0f; i <= rows; i++, t += tStep)
+        {
+            if (i == rows)
+                t = 1.0f;
+
+            y = (1.0f - t) * middle->y + t * bottom->y;
+
+            x1 = (1.0f - t) * middle->x + t * bottom->x;
+
+            z1 = (1.0f - t) * middle->z + t * bottom->z;
+
+            s = (y - top->y) / (bottom->y - top->y);
+
+            x2 = (1.0f - s) * top->x + s * bottom->x;
+
+            z2 = (1.0f - s) * top->z + s * bottom->z;
+
+            pixels = (int)ceilf(fabsf(x2 - x1) / pixelSize);
+
+            if (pixels < 1)
+                pixels = 1;
+
+            qStep = 1.0f / (float)pixels;
+
+            for (j = 0, q = 0.0f; j <= pixels; j++, q += qStep)
+            {
+                if (j == pixels)
+                    q = 1.0f;
+
+                x = (1.0f - q) * x1 + q * x2;
+                z = (1.0f - q) * z1 + q * z2;
+
+                alpha = q * (1.0f - s);
+
+                beta = (1.0f - q) * (1.0f - t);
+
+                gamma = (1.0f - q) * t + q * s;
+
+                if (optr->texturaduna && !atzeaurpegiada)
+                {
+                    u =
+                        alpha * optr->vertex_table[topIndex].u +
+                        beta * optr->vertex_table[middleIndex].u +
+                        gamma * optr->vertex_table[bottomIndex].u;
+
+                    v =
+                        alpha * optr->vertex_table[topIndex].v +
+                        beta * optr->vertex_table[middleIndex].v +
+                        gamma * optr->vertex_table[bottomIndex].v;
+
+                    textureColor = color_textura(u, v);
+
+                    glColor3ub(
+                        textureColor[0],
+                        textureColor[1],
+                        textureColor[2]);
+                }
+
+                glVertex3f(x, y, z);
+            }
+        }
+    }
+    glEnd();
 }
 
 void dibujar_poligono(object3d *optr, int ti)
@@ -475,10 +640,10 @@ void read_from_file(char *fitx, object3d **foptrptr)
         if (optr->texturaduna && (bufferra == 0))
         {
             // colocamos la información de la textura en el buffer señalado por bufferra. Las dimensiones de la textura se cargan en dimx y dimy
-            retval = load_ppm("testura.ppm", &bufferra, &dimx, &dimy);
+            retval = load_ppm("discretizacionLPF.ppm", &bufferra, &dimx, &dimy);
             if (retval != 1)
             {
-                printf("Ez dago testuraren fitxategia (testura.ppm)\n");
+                printf("No hay archivo de textura (discretizacionLPF.ppm)\n");
                 optr->texturaduna = 0;
                 // exit(-1);
             }
