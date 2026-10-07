@@ -113,12 +113,29 @@ void mxv(double *res, double *m, double *v)
 // Si según la cuarta fila de la matriz el cuarto componente del resultado, w, no es 1, entonces hay que devolver su equivalente: x/w, y/w y z/w
 void mxp(point3 *pptr, double m[16], point3 p)
 {
-    pptr->x = p.x;
-    pptr->y = p.y;
-    pptr->z = p.z;
+    double x, y, z, w;
+
+    // Matrix 4x4; p = (x, y, z, 1)
+    x = m[0] * p.x + m[1] * p.y + m[2] * p.z + m[3];
+    y = m[4] * p.x + m[5] * p.y + m[6] * p.z + m[7];
+    z = m[8] * p.x + m[9] * p.y + m[10] * p.z + m[11];
+    w = m[12] * p.x + m[13] * p.y + m[14] * p.z + m[15];
+
+    // si w no es 1
+    if (w != 1.0 && w != 0.0)
+    {
+        x /= w;
+        y /= w;
+        z /= w;
+    }
+
+    pptr->x = x;
+    pptr->y = y;
+    pptr->z = z;
 }
 
 // TODO obtener las coordenadas que tienen los vértices y los vectores normales del objeto en el sistema de referencia de la cámara
+// obtener la perspectiva o la vista de la cámara
 void kam_ikuspegia_lortu(object3d *optr)
 {
     int i;
@@ -127,11 +144,10 @@ void kam_ikuspegia_lortu(object3d *optr)
     // TODO obtener los vectores en el sistema de la cámara
     for (i = 0; i < optr->num_vertices; i++)
     {
-        // TODO modificar
-        //  obtener las coordenadas del observador
-        optr->vertex_table[i].camcoord.x = optr->vertex_table[i].coord.x;
-        optr->vertex_table[i].camcoord.y = optr->vertex_table[i].coord.y;
-        optr->vertex_table[i].camcoord.z = optr->vertex_table[i].coord.z;
+
+        //  obtener las coordenadas del observador con mxp
+        mxp(&optr->vertex_table[i].camcoord, optr->mptr->m, optr->vertex_table[i].coord);
+
         // TODO modificar
         // Obtener las coordenadas proyectadas
         optr->vertex_table[i].proedcoord.x = optr->vertex_table[i].camcoord.x;
@@ -620,20 +636,21 @@ void read_from_file(char *fitx, object3d **foptrptr)
     }
     else
     {
-        /*
-         //printf("objektuaren matrizea...\n");
-         optr->mptr = (mlist *)malloc(sizeof(mlist));
-         for (i=0; i<16; i++) optr->mptr->m[i] =0;
-         optr->mptr->m[0] = 1.0;
-         optr->mptr->m[5] = 1.0;
-         optr->mptr->m[10] = 1.0;
-         optr->mptr->m[15] = 1.0;
-         optr->mptr->hptr = 0;
-         */
-        // printf("objektu edo kamera zerrendara doa informazioa...\n");
+
+        printf("Matriz del objeto...\n");
+        optr->mptr = (mlist *)malloc(sizeof(mlist));
+        for (i = 0; i < 16; i++)
+            optr->mptr->m[i] = 0;
+        optr->mptr->m[0] = 1.0;
+        optr->mptr->m[5] = 1.0;
+        optr->mptr->m[10] = 1.0;
+        optr->mptr->m[15] = 1.0;
+        optr->mptr->hptr = 0;
+
+        // printf("La información se dirige a la lista de objetos o cámaras...\n");
         optr->hptr = *foptrptr;
         *foptrptr = optr;
-        // printf("normalak kalkulatzera\n");
+        // printf("calcular las normales\n");
         // for (i = 0; i< optr->num_vertices; i++) printf("%lf %lf %lf\n", optr->vertex_table[i].coord.x,optr->vertex_table[i].coord.y,optr->vertex_table[i].coord.z);
         obj_normalak_kalkulatu(optr);
         sel_ptr = optr;
@@ -759,27 +776,27 @@ void print_egoera()
     if (kamera == 0)
     {
         if (ald_lokala == 1)
-            printf("\nobjektua aldatzen ari zara, (aldaketa lokala)\n");
+            printf("\nestás modificando el objeto (transformación local)\n");
         else
-            printf("\nobjektua aldatzen ari zara, (aldaketa globala)\n");
+            printf("\nestás modificando el objeto (transformación global)\n");
     }
     if (kamera == 1)
     {
         if (ald_lokala == 1)
-            printf("\nkamera aldatzen ari zara hegaldi moduan\n");
+            printf("\nestás modificando la cámara en modo vuelo\n");
         else
-            printf("\nkamera aldatzen ari zara analisi-moduan\n");
+            printf("\nestás modificando la cámara en modo análisis\n");
     }
     if (kamera == 2)
     {
-        printf("\nargiak aldatzen ari zara\n");
+        printf("\nestás modificando las luces\n");
     }
     if (aldaketa == 't')
-        printf("Traslazioa dago aktibatuta\n");
+        printf("Traslación activada\n");
     else
-        printf("Biraketak daude aktibatuta\n");
+        printf("Rotaciones activadas\n");
     if (objektuaren_ikuspegia)
-        printf("objektuaren ikuspuntua erakusten ari zara (`C` sakatu kamerarenera pasatzeko)\n");
+        printf("estás mostrando el punto de vista del objeto (pulsa `C` para pasar al de la cámara)\n");
 }
 
 // Esta función se llamará cada vez que el usuario pulse una tecla
@@ -1039,14 +1056,14 @@ void viewportberria(int zabal, int garai)
     else
         dimentsioa = garai;
     glViewport(0, 0, dimentsioa, dimentsioa);
-    printf("linea kopuru berria = %d\n", dimentsioa);
+    printf("nuevo número de líneas = %d\n", dimentsioa);
 }
 
 int main(int argc, char **argv)
 {
     int retval, i;
 
-    printf(" Triangeluak: barneko puntuak eta testura\n Triángulos con puntos internos y textura \n");
+    printf(" Triángulos con puntos internos y textura \n");
     printf("Press <ESC> to finish\n");
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH);
@@ -1078,8 +1095,8 @@ int main(int argc, char **argv)
     // glLoadIdentity();
     // glOrtho(-1.0, 1.0, -1.0, 1.0, 1.0, -1.0);
     // glMatrixMode(GL_MODELVIEW);
-    denak = 0;
-    lineak = 0;
+    denak = // cambiar valor porque si no me pone 0 ;0
+        lineak = 0;
     objektuak = 0;
     kamera = 0;
     foptr = 0;
@@ -1099,10 +1116,7 @@ int main(int argc, char **argv)
         read_from_file(argv[1], &foptr);
     else
     {
-        // TODO ¡eliminar los mensajes y el código de salida!!
-        printf("Aldatu kode zati hau!!!! edo exekutatu objektua daukan fitxategi-izen batekin\n");
-        printf("    cambia el código!!!! ó ejecútalo con un objeto\n");
-        exit(0);
+
         // TODO cargar algún objeto[s] por defecto
         /*
         read_from_file("abioia-1+1.obj",&foptr);

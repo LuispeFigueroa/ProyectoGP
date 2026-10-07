@@ -21,13 +21,13 @@ luz =fscanf(obj_file, "%[^\n]\n", line);
 if ( luz > 1) 
     {
     if ((line[0]== 'P')&&(line[1]=='6'))
-        printf("formatu egokia\n");
+        printf("formato correcto\n");
       else
         {
         *dimxptr= 0;
         *dimyptr=0;
         *bufferptr = (unsigned char*)0;
-        printf("formatuak P6 modukoa izan behar du\n");
+        printf("el formato debe ser de tipo P6\n");
         return(-1);
         }
     }
@@ -37,13 +37,13 @@ if (luz>0)
     {
     luz = sscanf(line,"%d %d",dimxptr,dimyptr);
     if (luz == 2)
-        printf("dimentsioak irakurrita: %d,%d\n",*dimxptr,*dimyptr);
+        printf("dimensiones leídas: %d,%d\n",*dimxptr,*dimyptr);
       else
         {
         *dimxptr= 0;
         *dimyptr=0;
         *bufferptr = (unsigned char*)0;
-        printf("dimentsioak irakurtzerakoan arazoak\n");
+        printf("problemas al leer las dimensiones\n");
         return(-1);
         }
     }
@@ -53,13 +53,13 @@ if (luz>0)
     {
     luz = sscanf(line,"%d",&zbkia);
     if (luz == 1)
-        printf("kolorearen zenbaki maximoa irakurrita: %d\n",zbkia);
+        printf("valor máximo de color leído: %d\n",zbkia);
       else
         {
         *dimxptr= 0;
         *dimyptr=0;
         *bufferptr = (unsigned char*)0;
-        printf("kolore adierazpena irakurtzerakoan arazoak\n");
+        printf("problemas al leer la expresión de color\n");
         return(-1);
         }
     }
@@ -76,12 +76,12 @@ if (zbkia != luz)
         *dimyptr=0;
         free(*bufferptr);
         *bufferptr = (void*)0;
-        printf("bufferra betetzean erroreren bat...zbkia = %d, luz =%d\n",zbkia,luz);
+        printf("error al llenar el buffer...zbkia = %d, luz =%d\n",zbkia,luz);
         return(-1);
         }
       else
         {
-        printf("bufferra ondo irakurri du\n");
+        printf("buffer leído correctamente\n");
         return(1);
         }
 }
@@ -92,6 +92,6 @@ int dimx, dimy;
 void * buferra;
 
 load_ppm("joseba-eskiatzen.ppm", &buferra, &dimx, &dimy);
-printf("irudia kargatuta!!! %d, %d dimentsioak dauzka\n",dimx,dimy);
+printf("¡¡¡imagen cargada!!! tiene dimensiones %d, %d\n",dimx,dimy);
 }
 */
