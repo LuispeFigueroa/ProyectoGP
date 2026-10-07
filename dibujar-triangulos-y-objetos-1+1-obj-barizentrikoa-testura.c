@@ -43,6 +43,15 @@ int atzearpegiakmarraztu;
 // Multiplicar m1 por m2 y guardar el resultado en la matriz m.
 void mxm(double *m, double *m1, double *m2)
 {
+    int i, j, k;
+
+    for (i = 0; i < 4; i++)
+        for (j = 0; j < 4; j++)
+        {
+            m[i * 4 + j] = 0.0;
+            for (k = 0; k < 4; k++)
+                m[i * 4 + j] += m1[i * 4 + k] * m2[k * 4 + j];
+        }
 }
 
 // TODO
@@ -55,17 +64,29 @@ void kamerari_aldaketa_sartu_esk(double m[16])
 {
 }
 
-// TODO
+// aplicar transformaciones al objeto
 void objektuari_aldaketa_sartu_ezk(double m[16])
 {
+    mlist *new_matrix;
+
+    new_matrix = (mlist *)malloc(sizeof(mlist));
+    mxm(new_matrix->m, m, sel_ptr->mptr->m);
+    new_matrix->hptr = sel_ptr->mptr;
+    sel_ptr->mptr = new_matrix;
 }
 
 // TODO
 void objektuari_aldaketa_sartu_esk(double m[16])
 {
+    mlist *new_matrix;
+
+    new_matrix = (mlist *)malloc(sizeof(mlist));
+    mxm(new_matrix->m, sel_ptr->mptr->m, m);
+    new_matrix->hptr = sel_ptr->mptr;
+    sel_ptr->mptr = new_matrix;
 }
 
-// TODO dado u,v obtener el puntero al color
+// dado u,v obtener el puntero al color
 unsigned char *color_textura(float u, float v)
 {
     int indx;
@@ -680,7 +701,27 @@ void x_aldaketa(int dir)
         }
         else
         {
-            // trasladar: ¿0.02?
+            // trasladar en x
+            //'x' positio
+            //'X' negativo
+
+            if (sel_ptr != 0)
+            {
+                double step = (dir == 1) ? 0.02 : -0.02;
+                double m[16] = {
+                    1.0, 0.0, 0.0, step,
+                    0.0, 1.0, 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    0.0, 0.0, 0.0, 1.0};
+                if (ald_lokala == 1)
+                {
+                    objektuari_aldaketa_sartu_esk(m); // local
+                }
+                else
+                {
+                    objektuari_aldaketa_sartu_ezk(m); // global
+                }
+            }
         }
     }
     else if (kamera == 1) // estoy modificando la cámara
@@ -714,7 +755,27 @@ void y_aldaketa(int dir)
         }
         else
         {
-            // trasladar: ¿0.02?
+            // trasladar en y
+            //'y' positivo
+            //'Y' negativo
+
+            if (sel_ptr != 0)
+            {
+                double step = (dir == 1) ? 0.02 : -0.02;
+                double m[16] = {
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0, step,
+                    0.0, 0.0, 1.0, 0.0,
+                    0.0, 0.0, 0.0, 1.0};
+                if (ald_lokala == 1)
+                {
+                    objektuari_aldaketa_sartu_esk(m); // local
+                }
+                else
+                {
+                    objektuari_aldaketa_sartu_ezk(m); // global
+                }
+            }
         }
     }
     else if (kamera == 1) // estoy modificando la cámara
@@ -747,11 +808,30 @@ void z_aldaketa(int dir)
         }
         else
         {
-            // trasladar
+            // trasladar en z
+            //'z' positivo
+            //'Z' negativo
+            if (sel_ptr != 0)
+            {
+                double step = (dir == 1) ? 0.02 : -0.02;
+                double m[16] = {
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    0.0, 0.0, 1.0, step,
+                    0.0, 0.0, 0.0, 1.0};
+
+                if (ald_lokala == 1)
+                {
+                    objektuari_aldaketa_sartu_esk(m); // local
+                }
+                else
+                {
+                    objektuari_aldaketa_sartu_ezk(m); // global
+                }
+            }
         }
-    }
-    else // modificación de la cámara
-        if (kamera == 1)
+        else // modificación de la cámara
+            if (kamera == 1)
         {
             // en modo vuelo, mover siempre la cámara hacia delante o hacia atrás.
             // en modo análisis, si se quiere hacer una traslación, acercarse al objeto (¡sin pasarse!! controlar la distancia) o alejarse
@@ -761,395 +841,433 @@ void z_aldaketa(int dir)
         {
             // ¿mover la bombilla en el mundo o girar el sol?
         }
-}
-
-void undo()
-{
-}
-
-void kamera_objektuari_begira()
-{
-}
-
-void print_egoera()
-{
-    if (kamera == 0)
-    {
-        if (ald_lokala == 1)
-            printf("\nestás modificando el objeto (transformación local)\n");
-        else
-            printf("\nestás modificando el objeto (transformación global)\n");
     }
-    if (kamera == 1)
-    {
-        if (ald_lokala == 1)
-            printf("\nestás modificando la cámara en modo vuelo\n");
-        else
-            printf("\nestás modificando la cámara en modo análisis\n");
-    }
-    if (kamera == 2)
-    {
-        printf("\nestás modificando las luces\n");
-    }
-    if (aldaketa == 't')
-        printf("Traslación activada\n");
-    else
-        printf("Rotaciones activadas\n");
-    if (objektuaren_ikuspegia)
-        printf("estás mostrando el punto de vista del objeto (pulsa `C` para pasar al de la cámara)\n");
-}
 
-// Esta función se llamará cada vez que el usuario pulse una tecla
-static void teklatua(unsigned char key, int x, int y)
-{
-    int retval;
-    int i;
-    FILE *obj_file;
-
-    switch (key)
+    void undo()
     {
-    case 13:
-        if (foptr != 0) // si no hay objeto, no debe hacer nada
-        {
-            indexx++; // si es el último, convertirlo en el primero (¡hay que controlarlo!)
-            if (indexx == sel_ptr->num_faces)
-            {
-                indexx = 0;
-                if ((denak == 1) && (objektuak == 0))
-                {
-                    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-                    glFlush();
-                }
-            }
-        }
-        break;
-    case 'd':
-        if (denak == 1)
-            denak = 0;
-        else
-            denak = 1;
-        break;
-    case 'o':
-        if (objektuak == 1)
-            objektuak = 0;
-        else
-            objektuak = 1;
-        break;
-    case 'c':
-        if (kamera == 0) // estoy modificando el objeto.
-        {
-            if (objektuaren_ikuspegia == 1) // si estoy en la vista del objeto, puedo pasar a modificar las luces, no a modificar la cámara.
-            {
-                kamera = 2;
-                printf("argiak aldatzera zoaz (objektuaren ikuspegian zaude)\n");
-            }
-            else
-            {
-                kamera = 1;
-                ald_lokala = 1; // me pondré en modo vuelo
-                printf("kamera aldatzera zoaz (hegaldi moduan zaude)\n");
-            }
-        }
-        else
-        {
-            if (kamera == 1)
-            {
-                kamera = 2;
-                printf("argia aldatzera zoaz \n");
-            }
-            else
-            {
-                kamera = 0;
-                ald_lokala = 1; // me pondré en modo vuelo
-                printf("objektua aldatzera zoaz (aldaketa lokala daukazu) \n");
-            }
-        }
-        break;
-    case 'C':
-        if (objektuaren_ikuspegia == 1)
-            objektuaren_ikuspegia = 0;
-        else
-        {
-            objektuaren_ikuspegia = 1;
-            if (kamera == 1)
-            {
-                kamera = 0;
-            }
-            ald_lokala = 1;
-            printf("objektuaren ikuspegian sartu zara eta aldaketak era lokalean eragingo dituzu \n");
-        }
-        break;
-    case 'l':
-        if (lineak == 1)
-            lineak = 0;
-        else
-            lineak = 1;
-        break;
-    case 't':
-        aldaketa = 't';
-        printf("traslazioak\n");
-        break;
-    case 'r':
-        aldaketa = 'r';
-        printf("biraketak\n");
-        break;
-    case 'n':
-        if (normalak_marraztu == 0)
-        {
-            normalak_marraztu = 1;
-            printf("normalak marraztuko dira\n");
-        }
-        else
-        {
-            normalak_marraztu = 0;
-            printf("normalak ez dira marraztuko\n");
-        }
-        break;
-    case 'b':
-        if (atzearpegiakmarraztu == 1)
-        {
-            atzearpegiakmarraztu = 0;
-            printf("atze-aurpegiak ez dira marraztuko\n");
-        }
-        else
-        {
-            atzearpegiakmarraztu = 1;
-            printf("atze aurpegiak gorriz marraztuko dira\n");
-        }
-        break;
-    case 'g':
-        if (objektuaren_ikuspegia == 0) // en la vista del objeto, el cambio siempre será local.
+    }
+
+    void kamera_objektuari_begira()
+    {
+    }
+
+    void print_egoera()
+    {
+        if (kamera == 0)
         {
             if (ald_lokala == 1)
+                printf("\nestás modificando el objeto (transformación local)\n");
+            else
+                printf("\nestás modificando el objeto (transformación global)\n");
+        }
+        if (kamera == 1)
+        {
+            if (ald_lokala == 1)
+                printf("\nestás modificando la cámara en modo vuelo\n");
+            else
+                printf("\nestás modificando la cámara en modo análisis\n");
+        }
+        if (kamera == 2)
+        {
+            printf("\nestás modificando las luces\n");
+        }
+        if (aldaketa == 't')
+            printf("Traslación activada\n");
+        else
+            printf("Rotaciones activadas\n");
+        if (objektuaren_ikuspegia)
+            printf("estás mostrando el punto de vista del objeto (pulsa `C` para pasar al de la cámara)\n");
+    }
+
+    // Esta función se llamará cada vez que el usuario pulse una tecla
+    static void teklatua(unsigned char key, int x, int y)
+    {
+        int retval;
+        int i;
+        FILE *obj_file;
+
+        switch (key)
+        {
+        case 13:
+            if (foptr != 0) // si no hay objeto, no debe hacer nada
             {
-                ald_lokala = 0;
-                if ((kamera == 1) && (sel_ptr != 0))
+                indexx++; // si es el último, convertirlo en el primero (¡hay que controlarlo!)
+                if (indexx == sel_ptr->num_faces)
                 {
-                    kamera_objektuari_begira();
-                    // print_matrizea16(M_kam);
+                    indexx = 0;
+                    if ((denak == 1) && (objektuak == 0))
+                    {
+                        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+                        glFlush();
+                    }
+                }
+            }
+            break;
+        case 'd':
+            if (denak == 1)
+                denak = 0;
+            else
+                denak = 1;
+            break;
+        case 'o':
+            if (objektuak == 1)
+                objektuak = 0;
+            else
+                objektuak = 1;
+            break;
+        case 'c':
+            if (kamera == 0) // estoy modificando el objeto.
+            {
+                if (objektuaren_ikuspegia == 1) // si estoy en la vista del objeto, puedo pasar a modificar las luces, no a modificar la cámara.
+                {
+                    kamera = 2;
+                    printf("argiak aldatzera zoaz (objektuaren ikuspegian zaude)\n");
+                }
+                else
+                {
+                    kamera = 1;
+                    ald_lokala = 1; // me pondré en modo vuelo
+                    printf("kamera aldatzera zoaz (hegaldi moduan zaude)\n");
                 }
             }
             else
+            {
+                if (kamera == 1)
+                {
+                    kamera = 2;
+                    printf("argia aldatzera zoaz \n");
+                }
+                else
+                {
+                    kamera = 0;
+                    ald_lokala = 1; // me pondré en modo vuelo
+                    printf("objektua aldatzera zoaz (aldaketa lokala daukazu) \n");
+                }
+            }
+            break;
+        case 'C':
+            if (objektuaren_ikuspegia == 1)
+                objektuaren_ikuspegia = 0;
+            else
+            {
+                objektuaren_ikuspegia = 1;
+                if (kamera == 1)
+                {
+                    kamera = 0;
+                }
                 ald_lokala = 1;
-        }
-        else
-            printf("objektuaren ikuspegian aldaketak beti lokalak dira\n");
-        break;
-    case 'x':
-        x_aldaketa(1);
-        break;
-    case 'y':
-        y_aldaketa(1);
-        break;
-    case 'z':
-        z_aldaketa(1);
-        break;
-    case 'X':
-        x_aldaketa(0);
-        break;
-    case 'Y':
-        y_aldaketa(0);
-        break;
-    case 'Z':
-        z_aldaketa(0);
-        break;
-    case 'u':
-        undo();
-        break;
-    case 'p':
-        if (paralelo == 1)
-        {
-            printf("perspektiban agertu behar du\n");
-            paralelo = 0;
-        }
-        else
-        {
-            printf("paraleloan agertu behar du\n");
-            paralelo = 1;
-        }
-        break;
-    case 's': // iluminación suavizada
-        if (flatmode == 0)
-        {
-            flatmode = 1;
-            printf("argiztapen finkoa poligono osoan\n");
-        }
-        else
-        {
-            flatmode = 0;
-            printf("argiztapen suabizatua\n");
-        }
-        break;
-    case '1':
-        // Encender/apagar el sol
-        break;
-    case '2':
-        // Encender/apagar la bombilla
-        break;
-    case '3':
-        // Encender/apagar el foco del objeto
-        break;
-    case '4':
-        // Encender/apagar el foco de la cámara
-        break;
-    case '+':
-        if (kamera == 2)
-        { // Aumentar la apertura de los focos
-        }
-        else
-        {
-            if (kamera == 1)
-            { // Aumentar el volumen de vista de la cámara
+                printf("objektuaren ikuspegian sartu zara eta aldaketak era lokalean eragingo dituzu \n");
             }
-        }
-        break;
-    case '-':
-        if (kamera == 2)
-        { // Reducir la apertura de los focos
-        }
-        else
-        {
-            if (kamera == 1)
-            { // Reducir el volumen de vista de la cámara
-            }
-        }
-        break;
-    case 'f':
-        /* Pedir archivo */
-        printf("idatzi fitxategi izena\n");
-        scanf("%s", &(fitxiz[0]));
-        read_from_file(fitxiz, &foptr);
-        indexx = 0;
-        if ((ald_lokala == 0) && (kamera == 1) && (sel_ptr != 0))
-            kamera_objektuari_begira();
-        break;
-    case 9:             /* <TAB> */
-        if (foptr != 0) // si no hay objeto, no debe hacer nada
-        {
-            sel_ptr = sel_ptr->hptr;
-            /* La selección es circular, así que si salimos de la lista volvemos al primer elemento */
-            if (sel_ptr == 0)
-                sel_ptr = foptr;
-            indexx = 0; // el polígono seleccionado es el primero
-            if ((ald_lokala == 0) && (kamera == 1))
+            break;
+        case 'l':
+            if (lineak == 1)
+                lineak = 0;
+            else
+                lineak = 1;
+            break;
+        case 't':
+            aldaketa = 't';
+            printf("traslazioak\n");
+            break;
+        case 'r':
+            aldaketa = 'r';
+            printf("biraketak\n");
+            break;
+        case 'n':
+            if (normalak_marraztu == 0)
             {
-                // ¡hay que poner la cámara mirando al objeto!!
+                normalak_marraztu = 1;
+                printf("normalak marraztuko dira\n");
+            }
+            else
+            {
+                normalak_marraztu = 0;
+                printf("normalak ez dira marraztuko\n");
+            }
+            break;
+        case 'b':
+            if (atzearpegiakmarraztu == 1)
+            {
+                atzearpegiakmarraztu = 0;
+                printf("atze-aurpegiak ez dira marraztuko\n");
+            }
+            else
+            {
+                atzearpegiakmarraztu = 1;
+                printf("atze aurpegiak gorriz marraztuko dira\n");
+            }
+            break;
+        case 'g':
+            if (objektuaren_ikuspegia == 0) // en la vista del objeto, el cambio siempre será local.
+            {
+                if (ald_lokala == 1)
+                {
+                    ald_lokala = 0;
+                    if ((kamera == 1) && (sel_ptr != 0))
+                    {
+                        kamera_objektuari_begira();
+                        // print_matrizea16(M_kam);
+                    }
+                }
+                else
+                    ald_lokala = 1;
+            }
+            else
+                printf("objektuaren ikuspegian aldaketak beti lokalak dira\n");
+            break;
+        case 'x':
+            x_aldaketa(1);
+            break;
+        case 'y':
+            y_aldaketa(1);
+            break;
+        case 'z':
+            z_aldaketa(1);
+            break;
+        case 'X':
+            x_aldaketa(0);
+            break;
+        case 'Y':
+            y_aldaketa(0);
+            break;
+        case 'Z':
+            z_aldaketa(0);
+            break;
+        case 'u':
+            undo();
+            break;
+        case 'p':
+            if (paralelo == 1)
+            {
+                printf("perspektiban agertu behar du\n");
+                paralelo = 0;
+            }
+            else
+            {
+                printf("paraleloan agertu behar du\n");
+                paralelo = 1;
+            }
+            break;
+        case 's': // iluminación suavizada
+            if (flatmode == 0)
+            {
+                flatmode = 1;
+                printf("argiztapen finkoa poligono osoan\n");
+            }
+            else
+            {
+                flatmode = 0;
+                printf("argiztapen suabizatua\n");
+            }
+            break;
+        case '1':
+            // Encender/apagar el sol
+            break;
+        case '2':
+            // Encender/apagar la bombilla
+            break;
+        case '3':
+            // Encender/apagar el foco del objeto
+            break;
+        case '4':
+            // Encender/apagar el foco de la cámara
+            break;
+        case '+':
+            if (kamera == 2)
+            { // Aumentar la apertura de los focos
+            }
+            else
+            {
+                if (kamera == 1)
+                { // Aumentar el volumen de vista de la cámara
+                }
+                else
+                {
+                    // kamaera ==0, escalar el objeto (agrandar)
+                    if (sel_ptr != 0)
+                    {
+                        double m[16] = {1.1, 0.0, 0.0, 0.0,
+                                        0.0, 1.1, 0.0, 0.0,
+                                        0.0, 0.0, 1.1, 0.0,
+                                        0.0, 0.0, 0.0, 1.};
+
+                        if (ald_lokala == 1)
+                            // modificación local
+                            objektuari_aldaketa_sartu_esk(m);
+                        else
+                            // modificación global
+                            objektuari_aldaketa_sartu_ezk(m);
+                    }
+                }
+            }
+            break;
+        case '-':
+            if (kamera == 2)
+            { // Reducir la apertura de los focos
+            }
+            else
+            {
+                if (kamera == 1)
+                { // Reducir el volumen de vista de la cámara
+                }
+                else
+                {
+                    // escalar el objeto (achicar)
+                    if (sel_ptr != 0)
+                    {
+                        double s = 1.0 / 1.1;
+                        double m[16] =
+                            {s, 0.0, 0.0, 0.0,
+                             0.0, s, 0.0, 0.0,
+                             0.0, 0.0, s, 0.0,
+                             0.0, 0.0, 0.0, 1.};
+
+                        if (ald_lokala == 1)
+                            // modificación local
+                            objektuari_aldaketa_sartu_esk(m);
+                        else
+                            // modificación global
+                            objektuari_aldaketa_sartu_ezk(m);
+                    }
+                }
+            }
+            break;
+        case 'f':
+            /* Pedir archivo */
+            printf("idatzi fitxategi izena\n");
+            scanf("%s", &(fitxiz[0]));
+            read_from_file(fitxiz, &foptr);
+            indexx = 0;
+            if ((ald_lokala == 0) && (kamera == 1) && (sel_ptr != 0))
                 kamera_objektuari_begira();
-            }
-        }
-        break;
-    case 27: // <ESC>
-        exit(0);
-        break;
-    default:
-        printf("%d %c\n", key, key);
-    }
-    print_egoera();
-    // Hay que redibujar la pantalla para mostrar el nuevo triángulo
-    glutPostRedisplay();
-}
-
-void viewportberria(int zabal, int garai)
-{
-    if (zabal < garai)
-        dimentsioa = zabal;
-    else
-        dimentsioa = garai;
-    glViewport(0, 0, dimentsioa, dimentsioa);
-    printf("nuevo número de líneas = %d\n", dimentsioa);
-}
-
-int main(int argc, char **argv)
-{
-    int retval, i;
-
-    printf(" Triángulos con puntos internos y textura \n");
-    printf("Press <ESC> to finish\n");
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH);
-    dimentsioa = 500;
-    glutInitWindowSize(dimentsioa, dimentsioa);
-    glutInitWindowPosition(100, 100);
-    glutCreateWindow("KBG/GO praktika");
-
-    glutDisplayFunc(marraztu);
-    glutKeyboardFunc(teklatua);
-    glutReshapeFunc(viewportberria);
-    /* we put the information of the texture in the buffer pointed by bufferra. The dimensions of the texture are loaded into dimx and dimy
-        retval = load_ppm("testura.ppm", &bufferra, &dimx, &dimy);
-        if (retval !=1)
+            break;
+        case 9:             /* <TAB> */
+            if (foptr != 0) // si no hay objeto, no debe hacer nada
             {
-            printf("Ez dago testuraren fitxategia (testura.ppm)\n");
-            exit(-1);
+                sel_ptr = sel_ptr->hptr;
+                /* La selección es circular, así que si salimos de la lista volvemos al primer elemento */
+                if (sel_ptr == 0)
+                    sel_ptr = foptr;
+                indexx = 0; // el polígono seleccionado es el primero
+                if ((ald_lokala == 0) && (kamera == 1))
+                {
+                    // ¡hay que poner la cámara mirando al objeto!!
+                    kamera_objektuari_begira();
+                }
             }
-             */
-    bufferra = 0;
-    dimx = 0;
-    dimy = 0;
-    glClearColor(0.0f, 0.0f, 0.7f, 1.0f);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glEnable(GL_DEPTH_TEST); // activar el test de profundidad (Z-buffer)
-    glDepthFunc(GL_GREATER);
-    glClearDepth(0.0); // dibujar primero el más lejano (el mayor)
-    // glMatrixMode(GL_PROJECTION);
-    // glLoadIdentity();
-    // glOrtho(-1.0, 1.0, -1.0, 1.0, 1.0, -1.0);
-    // glMatrixMode(GL_MODELVIEW);
-    denak = // cambiar valor porque si no me pone 0 ;0
-        lineak = 0;
-    objektuak = 0;
-    kamera = 0;
-    foptr = 0;
-    sel_ptr = 0;
-    aldaketa = 'r';
-    ald_lokala = 1;
-    objektuaren_ikuspegia = 0;
-    normalak_marraztu = 0;
-    flatmode = 0;
-    paralelo = 1;
-    atzearpegiakmarraztu = 1;
-    // TODO inicializar la cámara: al principio está en la posición (0,0,2.5)
-
-    // TODO Inicializar las luces
-
-    if (argc > 1)
-        read_from_file(argv[1], &foptr);
-    else
-    {
-
-        read_from_file("abioia-1+1.obj", &foptr);
-        if (sel_ptr != 0)
-        {
-            sel_ptr->mptr->m[3] = -1.0;
+            break;
+        case 27: // <ESC>
+            exit(0);
+            break;
+        default:
+            printf("%d %c\n", key, key);
         }
-        read_from_file("abioia-1+1.obj", &foptr);
-        if (sel_ptr != 0)
-        {
-            sel_ptr->mptr->m[3] = 1.0;
-        }
-        read_from_file("abioia-1+1.obj", &foptr);
-        if (sel_ptr != 0)
-        {
-            sel_ptr->mptr->m[7] = -0.4;
-            sel_ptr->mptr->m[11] = 0.5;
-        }
-        read_from_file("abioia-1+1.obj", &foptr);
-        if (sel_ptr != 0)
-        {
-            sel_ptr->mptr->m[11] = -0.7;
-        }
-        read_from_file("abioia-1+1.obj", &foptr);
-        if (sel_ptr != 0)
-        {
-            sel_ptr->mptr->m[7] = 0.7;
-        }
-        */
-        // read_from_file("z-1+1.obj",&foptr);
-        // read_from_file("abioia-1+1.obj",&foptr);
-        // read_from_file("triangles-1+1.obj",&foptr);
+        print_egoera();
+        // Hay que redibujar la pantalla para mostrar el nuevo triángulo
+        glutPostRedisplay();
     }
-    print_egoera();
-    glutMainLoop();
 
-    return 0;
-}
+    void viewportberria(int zabal, int garai)
+    {
+        if (zabal < garai)
+            dimentsioa = zabal;
+        else
+            dimentsioa = garai;
+        glViewport(0, 0, dimentsioa, dimentsioa);
+        printf("nuevo número de líneas = %d\n", dimentsioa);
+    }
+
+    int main(int argc, char **argv)
+    {
+        int retval, i;
+
+        printf(" Triángulos con puntos internos y textura \n");
+        printf("Press <ESC> to finish\n");
+        glutInit(&argc, argv);
+        glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH);
+        dimentsioa = 500;
+        glutInitWindowSize(dimentsioa, dimentsioa);
+        glutInitWindowPosition(100, 100);
+        glutCreateWindow("KBG/GO praktika");
+
+        glutDisplayFunc(marraztu);
+        glutKeyboardFunc(teklatua);
+        glutReshapeFunc(viewportberria);
+        /* we put the information of the texture in the buffer pointed by bufferra. The dimensions of the texture are loaded into dimx and dimy
+            retval = load_ppm("testura.ppm", &bufferra, &dimx, &dimy);
+            if (retval !=1)
+                {
+                printf("Ez dago testuraren fitxategia (testura.ppm)\n");
+                exit(-1);
+                }
+                 */
+        bufferra = 0;
+        dimx = 0;
+        dimy = 0;
+        glClearColor(0.0f, 0.0f, 0.7f, 1.0f);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glEnable(GL_DEPTH_TEST); // activar el test de profundidad (Z-buffer)
+        glDepthFunc(GL_GREATER);
+        glClearDepth(0.0); // dibujar primero el más lejano (el mayor)
+        // glMatrixMode(GL_PROJECTION);
+        // glLoadIdentity();
+        // glOrtho(-1.0, 1.0, -1.0, 1.0, 1.0, -1.0);
+        // glMatrixMode(GL_MODELVIEW);
+        denak = 1;
+        lineak = 0;
+        objektuak = 1;
+        kamera = 0;
+        foptr = 0;
+        sel_ptr = 0;
+        aldaketa = 'r';
+        ald_lokala = 1;
+        objektuaren_ikuspegia = 0;
+        normalak_marraztu = 0;
+        flatmode = 0;
+        paralelo = 1;
+        atzearpegiakmarraztu = 1;
+        // TODO inicializar la cámara: al principio está en la posición (0,0,2.5)
+
+        // TODO Inicializar las luces
+
+        if (argc > 1)
+            read_from_file(argv[1], &foptr);
+        else
+        {
+
+            read_from_file("abioia-1+1.obj", &foptr);
+            if (sel_ptr != 0)
+            {
+                sel_ptr->mptr->m[3] = -1.0;
+            }
+            read_from_file("abioia-1+1.obj", &foptr);
+            if (sel_ptr != 0)
+            {
+                sel_ptr->mptr->m[3] = 1.0;
+            }
+            read_from_file("abioia-1+1.obj", &foptr);
+            if (sel_ptr != 0)
+            {
+                sel_ptr->mptr->m[7] = -0.4;
+                sel_ptr->mptr->m[11] = 0.5;
+            }
+            read_from_file("abioia-1+1.obj", &foptr);
+            if (sel_ptr != 0)
+            {
+                sel_ptr->mptr->m[11] = -0.7;
+            }
+            read_from_file("abioia-1+1.obj", &foptr);
+            if (sel_ptr != 0)
+            {
+                sel_ptr->mptr->m[7] = 0.7;
+            }
+
+            // read_from_file("z-1+1.obj",&foptr);
+            // read_from_file("abioia-1+1.obj",&foptr);
+            // read_from_file("triangles-1+1.obj",&foptr);
+        }
+        print_egoera();
+        glutMainLoop();
+
+        return 0;
+    }
