@@ -1117,30 +1117,32 @@ int main(int argc, char **argv)
     else
     {
 
-        // TODO cargar algún objeto[s] por defecto
-        /*
-        read_from_file("abioia-1+1.obj",&foptr);
+        read_from_file("abioia-1+1.obj", &foptr);
         if (sel_ptr != 0)
-            { //sel_ptr->mptr->m[3] = -1.0;
-            }
-        read_from_file("abioia-1+1.obj",&foptr);
+        {
+            sel_ptr->mptr->m[3] = -1.0;
+        }
+        read_from_file("abioia-1+1.obj", &foptr);
         if (sel_ptr != 0)
-            { //sel_ptr->mptr->m[3] = 1.0;
-            }
-        read_from_file("abioia-1+1.obj",&foptr);
+        {
+            sel_ptr->mptr->m[3] = 1.0;
+        }
+        read_from_file("abioia-1+1.obj", &foptr);
         if (sel_ptr != 0)
-            {
-            //sel_ptr->mptr->m[7] = -0.4;
-            //sel_ptr->mptr->m[11] = 0.5;
-            }
-        read_from_file("abioia-1+1.obj",&foptr);
+        {
+            sel_ptr->mptr->m[7] = -0.4;
+            sel_ptr->mptr->m[11] = 0.5;
+        }
+        read_from_file("abioia-1+1.obj", &foptr);
         if (sel_ptr != 0)
-            { //sel_ptr->mptr->m[11] = -0.7;
-            }
-        read_from_file("abioia-1+1.obj",&foptr);
+        {
+            sel_ptr->mptr->m[11] = -0.7;
+        }
+        read_from_file("abioia-1+1.obj", &foptr);
         if (sel_ptr != 0)
-            { //sel_ptr->mptr->m[7] = 0.7;
-            }
+        {
+            sel_ptr->mptr->m[7] = 0.7;
+        }
         */
         // read_from_file("z-1+1.obj",&foptr);
         // read_from_file("abioia-1+1.obj",&foptr);
