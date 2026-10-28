@@ -38,6 +38,15 @@ int flatmode;
 int paralelo;
 char fitxiz[100];
 int atzearpegiakmarraztu;
+mlist *camera_ptr;
+
+// camara/observador
+double MCSR[16];
+double view_half_width;
+double view_half_height;
+double view_near;
+double view_far;
+double projection_matrix[16];
 
 // TODO  m = m1 * m2
 // Multiplicar m1 por m2 y guardar el resultado en la matriz m.
@@ -54,14 +63,26 @@ void mxm(double *m, double *m1, double *m2)
         }
 }
 
-// TODO
+// tranformacion globar a la camara M_nueva = T x M_cam
 void kamerari_aldaketa_sartu_ezk(double *m)
 {
+    mlist *new_matrix;
+
+    new_matrix = (mlist *)malloc(sizeof(mlist));
+    mxm(new_matrix->m, m, camera_ptr->m);
+    new_matrix->hptr = camera_ptr;
+    camera_ptr = new_matrix;
 }
 
-// TODO
+// aplicar transformacion local a la camara: M_nueva = M_cam · T
 void kamerari_aldaketa_sartu_esk(double m[16])
 {
+    mlist *new_matrix;
+
+    new_matrix = (mlist *)malloc(sizeof(mlist));
+    mxm(new_matrix->m, camera_ptr->m, m);
+    new_matrix->hptr = camera_ptr;
+    camera_ptr = new_matrix;
 }
 
 // aplicar transformaciones al objeto
@@ -156,24 +177,108 @@ void mxp(point3 *pptr, double m[16], point3 p)
 }
 
 // TODO obtener las coordenadas que tienen los vértices y los vectores normales del objeto en el sistema de referencia de la cámara
+// MCSR = matriz de transformación del sistema de coordenadas del objeto al sistema de coordenadas de la cámara
+void get_mcsr(double *M)
+{
+    double *A = camera_ptr->m;
+    double Xc[3], Yc[3], Zc[3], E[3];
+
+    // ejes y posicion de la camara
+    Xc[0] = A[0];
+    Xc[1] = A[4];
+    Xc[2] = A[8];
+
+    Yc[0] = A[1];
+    Yc[1] = A[5];
+    Yc[2] = A[9];
+
+    Zc[0] = A[2];
+    Zc[1] = A[6];
+    Zc[2] = A[10];
+
+    E[0] = A[3];
+    E[1] = A[7];
+    E[2] = A[11];
+
+    // filas de la matriz mcsr, ejes de la camara
+    M[0] = Xc[0];
+    M[1] = Xc[1];
+    M[2] = Xc[2];
+    M[3] = -Xc[0] * E[0] - Xc[1] * E[1] - Xc[2] * E[2];
+
+    M[4] = Yc[0];
+    M[5] = Yc[1];
+    M[6] = Yc[2];
+    M[7] = -Yc[0] * E[0] - Yc[1] * E[1] - Yc[2] * E[2];
+
+    M[8] = Zc[0];
+    M[9] = Zc[1];
+    M[10] = Zc[2];
+    M[11] = -(Zc[0] * E[0] + Zc[1] * E[1] + Zc[2] * E[2]);
+
+    M[12] = 0.0;
+    M[13] = 0.0;
+    M[14] = 0.0;
+    M[15] = 1.0;
+}
+
+// modelview matrix = MCSR * Mobj
+void get_modelview(double *modelview, double *object_matrix)
+{
+    mxm(modelview, MCSR, object_matrix);
+}
+// matriz de proyection (sin invertir z)
+void get_projection_matrix(double *P)
+{
+    double n = view_near;
+    double f = view_far;
+    double r, t;
+    int i;
+
+    for (i = 0; i < 16; i++)
+        P[i] = 0.0;
+
+    if (paralelo == 1)
+    {
+        r = view_half_width;
+        t = view_half_height;
+        P[0] = 1.0 / r;
+        P[5] = 1.0 / t;
+        P[10] = 2.0 / (f - n);
+        P[11] = (f + n) / (f - n);
+        P[15] = 1.0;
+    }
+    else
+    {
+        // en perspectiva el volumen se mide en el plano near
+        r = n * view_half_width;
+        t = n * view_half_height;
+        P[0] = n / r;
+        P[5] = n / t;
+        P[10] = (f + n) / (f - n);
+        P[11] = 2.0 * f * n / (f - n);
+        P[14] = -1.0; // w = -z
+    }
+}
+
 // obtener la perspectiva o la vista de la cámara
 void kam_ikuspegia_lortu(object3d *optr)
 {
     int i;
+    double modelview[16];
+    double z;
 
-    // TODO  obtener el punto en el sistema de coordenadas del observador y proyectarlo
-    // TODO obtener los vectores en el sistema de la cámara
+    get_modelview(modelview, optr->mptr->m);
+
     for (i = 0; i < optr->num_vertices; i++)
     {
+        // coordenadas del vertice en el sistema de la camara
+        mxp(&optr->vertex_table[i].camcoord, modelview, optr->vertex_table[i].coord);
 
-        //  obtener las coordenadas del observador con mxp
-        mxp(&optr->vertex_table[i].camcoord, optr->mptr->m, optr->vertex_table[i].coord);
+        // proyeccion paralela: x e y al rango [-1, 1]
+        // proyectar (paralela o perspectiva); mxp divide entre w
+        mxp(&optr->vertex_table[i].proedcoord, projection_matrix, optr->vertex_table[i].camcoord);
 
-        // TODO modificar
-        // Obtener las coordenadas proyectadas
-        optr->vertex_table[i].proedcoord.x = optr->vertex_table[i].camcoord.x;
-        optr->vertex_table[i].proedcoord.y = optr->vertex_table[i].camcoord.y;
-        optr->vertex_table[i].proedcoord.z = optr->vertex_table[i].camcoord.z;
         // TODO modificar
         // obtener el vector normal en las coordenadas de la cámara
         optr->vertex_table[i].Ncam[0] = optr->vertex_table[i].N[0];
@@ -559,6 +664,12 @@ void dibujar_poligono(object3d *optr, int ti)
     ind2 = optr->face_table[ti].vertex_ind_table[2];
 
     // TODO decidir si hay que dibujar o no: no dibujar lo que quede fuera del volumen de vista
+    // no dibujar el poligono si algun vertice esta detras del plano near
+    for (i = 0; i < optr->face_table[ti].num_vertices; i++)
+    {
+        if (optr->vertex_table[optr->face_table[ti].vertex_ind_table[i]].camcoord.z > -view_near)
+            return;
+    }
 
     atzeaurpegiada = 0;
     // TODO ¿es cara trasera?
@@ -602,6 +713,8 @@ static void marraztu(void)
             glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     }
     // TODO obtener la matriz que pasa al sistema de referencia del observador o de la cámara
+    get_mcsr(MCSR);
+    get_projection_matrix(projection_matrix);
 
     // TODO actualizar la información que tienen las luces en la vista de la cámara (tanto posiciones como direcciones)
 
@@ -693,6 +806,53 @@ void read_from_file(char *fitx, object3d **foptrptr)
     }
     // printf("datuak irakurrita\n");
 }
+// obtener el centro del objeto que esta seleccionado en coordenadas del mundo
+void get_object_center(point3 *center)
+{
+    point3 local_center;
+
+    // calcular el centro de la caja que esta envolviendo al objeto seleccionado
+    local_center.x = (sel_ptr->max.x + sel_ptr->min.x) / 2.0;
+    local_center.y = (sel_ptr->max.y + sel_ptr->min.y) / 2.0;
+    local_center.z = (sel_ptr->max.z + sel_ptr->min.z) / 2.0;
+
+    // pasarla al mundo
+    mxp(center, sel_ptr->mptr->m, loca_center);
+}
+
+// girar la camara alrededor del centro del objeto: M_cam · T(Cc) · R · T(-Cc)
+void orbit_camera_around_object(double *R)
+{
+    point3 center;
+    // centro del objeto visto desde la camara
+    point3 cc;
+    double T[16], T_inv[16], tmp[16], total[16];
+    int i;
+
+    // obtener el centro del objeto en coordenadas del mundo
+    get_object_center(&center);
+    get_mcsr(MCSR);
+    mxp(&cc, MCSR, center);
+
+    // trabajar la matriz de transformación: T(Cc) · R · T(-Cc)
+    for (i = 0; i < 16; i++)
+    {
+        T[i] = 0.0;
+        T_inv[i] = 0.0;
+    }
+    T[0] = T[5] = T[10] = T[15] = 1.0;
+    T_inv[0] = T_inv[5] = T_inv[10] = T_inv[15] = 1.0;
+    T[3] = cc.x;
+    T[7] = cc.y;
+    T[11] = cc.z;
+    T_inv[3] = -cc.x;
+    T_inv[7] = -cc.y;
+    T_inv[11] = -cc.z;
+
+    mxm(tmp, T, R);
+    mxm(total, tmp, T_inv);
+    kamerari_aldaketa_sartu_esk(total); // local
+}
 
 void x_aldaketa(int dir)
 {
@@ -751,13 +911,30 @@ void x_aldaketa(int dir)
     {
         if (ald_lokala == 1) // en modo vuelo, mirar izquierda/derecha (rotación respecto a y)
         {
-            // TODO volar
+            double c = 0.99619469809174;
+            double s = (dir == 1) ? -0.087155742747658 : 0.087155742747658; // sin(-5) o sin(5)
+            double m[16] = {
+                c, 0.0, s, 0.0,
+                0.0, 1.0, 0.0, 0.0,
+                -s, 0.0, c, 0.0,
+                0.0, 0.0, 0.0, 1.0};
+            kamerari_aldaketa_sartu_esk(m); // local
         }
         else // en modo análisis
         {
             if (sel_ptr != 0)
             {
                 // analizar el objeto seleccionado más hacia la derecha o hacia la izquierda (¡girando!)
+                // orbitar alrededor del eje y: 'x' la camara va a la derecha, 'X' a la izquierda
+                double c = 0.99619469809174;
+                double s = (dir == 1) ? 0.087155742747658 : -0.087155742747658;
+                double R[16] = {
+                    c, 0.0, s, 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    -s, 0.0, c, 0.0,
+                    0.0, 0.0, 0.0, 1.0};
+
+                orbit_camera_around_object(R);
             }
         }
     }
@@ -824,13 +1001,32 @@ void y_aldaketa(int dir)
     {
         if (ald_lokala == 1) // en modo vuelo, mirar izquierda/derecha (rotación respecto a y)
         {
-            // TODO volar
+            // girar alrededor del eje x de la camara
+            double c = 0.99619469809174;
+            double s = (dir == 1) ? 0.087155742747658 : -0.087155742747658; // sin(5) o sin(-5)
+            double m[16] = {
+                1.0, 0.0, 0.0, 0.0,
+                0.0, c, -s, 0.0,
+                0.0, s, c, 0.0,
+                0.0, 0.0, 0.0, 1.0};
+
+            kamerari_aldaketa_sartu_esk(m);
         }
         else // en modo análisis
         {
             if (sel_ptr != 0)
             {
                 // analizar el objeto seleccionado más desde arriba o desde abajo (¡girando!)
+                // orbitar alrededor del eje x: 'y' la camara sube, 'Y' baja
+                double c = 0.99619469809174;
+                double s = (dir == 1) ? -0.087155742747658 : 0.087155742747658;
+                double R[16] = {
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, c, -s, 0.0,
+                    0.0, s, c, 0.0,
+                    0.0, 0.0, 0.0, 1.0};
+
+                orbit_camera_around_object(R);
             }
         }
     }
@@ -897,8 +1093,58 @@ void z_aldaketa(int dir)
         if (kamera == 1)
         {
             // en modo vuelo, mover siempre la cámara hacia delante o hacia atrás.
-            // en modo análisis, si se quiere hacer una traslación, acercarse al objeto (¡sin pasarse!! controlar la distancia) o alejarse
-            // en modo análisis, rotación (roll)
+            if (ald_lokala == 1)
+            {
+
+                double step = (dir == 1) ? -0.05 : 0.05;
+                double m[16] = {
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    0.0, 0.0, 1.0, step,
+                    0.0, 0.0, 0.0, 1.0};
+                kamerari_aldaketa_sartu_esk(m);
+            }
+            else
+            {
+                if (sel_ptr != 0)
+                {
+                    if (aldaketa == 't')
+                    {
+                        // acercarse ('z') o alejarse ('Z') sin atravesar el objeto
+                        point3 center, cc;
+                        double distance;
+                        double step = (dir == 1) ? -0.05 : 0.05;
+                        double m[16] = {
+                            1.0, 0.0, 0.0, 0.0,
+                            0.0, 1.0, 0.0, 0.0,
+                            0.0, 0.0, 1.0, step,
+                            0.0, 0.0, 0.0, 1.0};
+
+                        get_object_center(&center);
+                        get_mcsr(MCSR);
+                        mxp(&cc, MCSR, center);
+                        distance = sqrt(cc.x * cc.x + cc.y * cc.y + cc.z * cc.z);
+
+                        if ((dir == 0) || (distance + step > view_near + 0.5)) // controlar la distancia
+                            kamerari_aldaketa_sartu_esk(m);
+                        else
+                            printf("demasiado cerca del objeto\n");
+                    }
+                    else
+                    {
+                        // roll: girar alrededor de la linea de vision
+                        double c = 0.99619469809174;
+                        double s = (dir == 1) ? 0.087155742747658 : -0.087155742747658;
+                        double R[16] = {
+                            c, -s, 0.0, 0.0,
+                            s, c, 0.0, 0.0,
+                            0.0, 0.0, 1.0, 0.0,
+                            0.0, 0.0, 0.0, 1.0};
+
+                        orbit_camera_around_object(R);
+                    }
+                }
+            }
         }
         else // modificando las luces
         {
@@ -924,6 +1170,20 @@ void undo()
             {
                 printf("No hay más cambios que deshacer\n");
             }
+        }
+    }
+    else if (kamera == 1)
+    {
+        // undo movimiento de la camar
+        if (camera_ptr->hptr != 0)
+        {
+            top = camera_ptr;
+            camera_ptr = camera_ptr->hptr;
+            free(top);
+        }
+        else
+        {
+            printf("No hay más cambios que deshacer\n");
         }
     }
 }
@@ -959,8 +1219,75 @@ void delete_object()
     free(to_delete);
 }
 
+// orientar la camara para que mire al centro del objeto seleccionado (sin moverla)
 void kamera_objektuari_begira()
 {
+    mlist *new_matrix;
+    point3 center;
+    double E[3], Xc[3], Yc[3], Zc[3];
+    double length;
+
+    if (sel_ptr == 0)
+        return;
+
+    get_object_center(&center);
+    E[0] = camera_ptr->m[3];
+    E[1] = camera_ptr->m[7];
+    E[2] = camera_ptr->m[11];
+
+    // Zc: del objeto hacia la camara (la camara mira hacia -Zc)
+    Zc[0] = E[0] - center.x;
+    Zc[1] = E[1] - center.y;
+    Zc[2] = E[2] - center.z;
+    length = sqrt(Zc[0] * Zc[0] + Zc[1] * Zc[1] + Zc[2] * Zc[2]);
+    if (length < 0.000001) // la camara esta en el centro del objeto
+        return;
+    Zc[0] /= length;
+    Zc[1] /= length;
+    Zc[2] /= length;
+
+    // Xc = arriba × Zc, con arriba = (0,1,0)
+    Xc[0] = Zc[2];
+    Xc[1] = 0.0;
+    Xc[2] = -Zc[0];
+    length = sqrt(Xc[0] * Xc[0] + Xc[2] * Xc[2]);
+    if (length < 0.000001) // mirando justo hacia arriba o hacia abajo
+    {
+        Xc[0] = 1.0;
+        Xc[2] = 0.0;
+    }
+    else
+    {
+        Xc[0] /= length;
+        Xc[2] /= length;
+    }
+
+    // Yc = Zc × Xc
+    Yc[0] = Zc[1] * Xc[2] - Zc[2] * Xc[1];
+    Yc[1] = Zc[2] * Xc[0] - Zc[0] * Xc[2];
+    Yc[2] = Zc[0] * Xc[1] - Zc[1] * Xc[0];
+
+    // nueva matriz de la camara: columnas Xc, Yc, Zc, E
+    new_matrix = (mlist *)malloc(sizeof(mlist));
+    new_matrix->m[0] = Xc[0];
+    new_matrix->m[1] = Yc[0];
+    new_matrix->m[2] = Zc[0];
+    new_matrix->m[3] = E[0];
+    new_matrix->m[4] = Xc[1];
+    new_matrix->m[5] = Yc[1];
+    new_matrix->m[6] = Zc[1];
+    new_matrix->m[7] = E[1];
+    new_matrix->m[8] = Xc[2];
+    new_matrix->m[9] = Yc[2];
+    new_matrix->m[10] = Zc[2];
+    new_matrix->m[11] = E[2];
+    new_matrix->m[12] = 0.0;
+    new_matrix->m[13] = 0.0;
+    new_matrix->m[14] = 0.0;
+    new_matrix->m[15] = 1.0;
+
+    new_matrix->hptr = camera_ptr;
+    camera_ptr = new_matrix;
 }
 
 void print_egoera()
@@ -1206,6 +1533,8 @@ static void teklatua(unsigned char key, int x, int y)
         {
             if (kamera == 1)
             { // Aumentar el volumen de vista de la cámara
+                view_half_width *= 1.1;
+                view_half_height *= 1.1;
             }
             else
             {
@@ -1235,6 +1564,12 @@ static void teklatua(unsigned char key, int x, int y)
         {
             if (kamera == 1)
             { // Reducir el volumen de vista de la cámara
+                // no dejar que reduzca demasiado, no puede ser 0 porque se usa para dividir
+                if (view_half_width > 0.05)
+                {
+                    view_half_width /= 1.1;
+                    view_half_height /= 1.1;
+                }
             }
             else
             {
@@ -1352,7 +1687,24 @@ int main(int argc, char **argv)
     flatmode = 0;
     paralelo = 1;
     atzearpegiakmarraztu = 1;
-    // TODO inicializar la cámara: al principio está en la posición (0,0,2.5)
+    // nicializar la cámara: al principio está en la posición (0,0,2.5)
+    camera_ptr = (mlist *)malloc(sizeof(mlist));
+    for (i = 0; i < 16; i++)
+    {
+        camera_ptr->m[i] = 0.0;
+    }
+    camera_ptr->m[0] = 1.0;
+    camera_ptr->m[5] = 1.0;
+    camera_ptr->m[10] = 1.0;
+    camera_ptr->m[15] = 1.0;
+    camera_ptr->m[11] = 2.5;
+    camera_ptr->hptr = 0;
+
+    // volumen
+    view_half_width = 1.0;
+    view_half_height = 1.0;
+    view_near = 1.0;
+    view_far = 10.0;
 
     // TODO Inicializar las luces
 
