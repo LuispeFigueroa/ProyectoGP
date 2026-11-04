@@ -48,7 +48,6 @@ double view_near;
 double view_far;
 double projection_matrix[16];
 
-// TODO  m = m1 * m2
 // Multiplicar m1 por m2 y guardar el resultado en la matriz m.
 void mxm(double *m, double *m1, double *m2)
 {
@@ -74,7 +73,8 @@ void kamerari_aldaketa_sartu_ezk(double *m)
     camera_ptr = new_matrix;
 }
 
-// aplicar transformacion local a la camara: M_nueva = M_cam · T
+// aplicar transformacion local a la camara
+// M_nueva = M_cam · T
 void kamerari_aldaketa_sartu_esk(double m[16])
 {
     mlist *new_matrix;
@@ -96,7 +96,7 @@ void objektuari_aldaketa_sartu_ezk(double m[16])
     sel_ptr->mptr = new_matrix;
 }
 
-// aplicar transformacion loca
+// aplicar transformacion local al objeto
 void objektuari_aldaketa_sartu_esk(double m[16])
 {
     mlist *new_matrix;
@@ -139,17 +139,25 @@ void print_matrizea16(double *m)
         printf("%lf, %lf, %lf, %lf\n", m[i * 4], m[i * 4 + 1], m[i * 4 + 2], m[i * 4 + 3]);
 }
 
-// TODO  res = m * v
 // Multiplicar el vector v por la matriz m y guardar el resultado en el vector señalado por res.
 // Se supone que el cuarto componente del vector v y del resultado res es 0.
 void mxv(double *res, double *m, double *v)
 {
-    res[0] = v[0];
-    res[1] = v[1];
-    res[2] = v[2];
+    res[0] = m[0] * v[0] + m[1] * v[1] + m[2] * v[2];
+    res[1] = m[4] * v[0] + m[5] * v[1] + m[6] * v[2];
+    res[2] = m[8] * v[0] + m[9] * v[1] + m[10] * v[2];
+}
+void normalize_vector(double *v)
+{
+    double length = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    if (length > 0)
+    {
+        v[0] /= length;
+        v[1] /= length;
+        v[2] /= length;
+    }
 }
 
-// TODO  pptr = m * p
 // Multiplicar el punto p por la matriz m y guardar el resultado en el punto señalado por pptr.
 // Se supone que el cuarto componente del punto p es 1.
 // Si según la cuarta fila de la matriz el cuarto componente del resultado, w, no es 1, entonces hay que devolver su equivalente: x/w, y/w y z/w
@@ -176,11 +184,23 @@ void mxp(point3 *pptr, double m[16], point3 p)
     pptr->z = z;
 }
 
-// TODO obtener las coordenadas que tienen los vértices y los vectores normales del objeto en el sistema de referencia de la cámara
 // MCSR = matriz de transformación del sistema de coordenadas del objeto al sistema de coordenadas de la cámara
 void get_mcsr(double *M)
 {
-    double *A = camera_ptr->m;
+
+    double *A;
+    double length;
+
+    // modo observador C mayuscula
+    if (objektuaren_ikuspegia == 1 && sel_ptr != 0)
+    {
+        A = sel_ptr->mptr->m;
+    }
+    else
+    {
+        A = camera_ptr->m;
+    }
+
     double Xc[3], Yc[3], Zc[3], E[3];
 
     // ejes y posicion de la camara
@@ -199,6 +219,34 @@ void get_mcsr(double *M)
     E[0] = A[3];
     E[1] = A[7];
     E[2] = A[11];
+
+    // hay que normalizar los ejes,porque el objeto puede estar escalado
+    length = sqrt(Xc[0] * Xc[0] + Xc[1] * Xc[1] + Xc[2] * Xc[2]);
+    Xc[0] /= length;
+    Xc[1] /= length;
+    Xc[2] /= length;
+
+    length = sqrt(Yc[0] * Yc[0] + Yc[1] * Yc[1] + Yc[2] * Yc[2]);
+    Yc[0] /= length;
+    Yc[1] /= length;
+    Yc[2] /= length;
+
+    length = sqrt(Zc[0] * Zc[0] + Zc[1] * Zc[1] + Zc[2] * Zc[2]);
+    Zc[0] /= length;
+    Zc[1] /= length;
+    Zc[2] /= length;
+
+    if (objektuaren_ikuspegia == 1 && sel_ptr != 0)
+    {
+        // invertir los ejes de la camara para ver hacia el frente
+
+        Xc[0] = -Xc[0];
+        Xc[1] = -Xc[1];
+        Xc[2] = -Xc[2];
+        Zc[0] = -Zc[0];
+        Zc[1] = -Zc[1];
+        Zc[2] = -Zc[2];
+    }
 
     // filas de la matriz mcsr, ejes de la camara
     M[0] = Xc[0];
@@ -279,20 +327,16 @@ void kam_ikuspegia_lortu(object3d *optr)
         // proyectar (paralela o perspectiva); mxp divide entre w
         mxp(&optr->vertex_table[i].proedcoord, projection_matrix, optr->vertex_table[i].camcoord);
 
-        // TODO modificar
         // obtener el vector normal en las coordenadas de la cámara
-        optr->vertex_table[i].Ncam[0] = optr->vertex_table[i].N[0];
-        optr->vertex_table[i].Ncam[1] = optr->vertex_table[i].N[1];
-        optr->vertex_table[i].Ncam[2] = optr->vertex_table[i].N[2];
+        mxv(optr->vertex_table[i].Ncam, modelview, optr->vertex_table[i].N);
+        normalize_vector(optr->vertex_table[i].Ncam);
     }
 
-    // TODO obtener la normal de la cara en el sistema de coordenadas del observador
+    // obtener la normal de la cara en el sistema de coordenadas del observador
     for (i = 0; i < optr->num_faces; i++)
     {
-        // TODO modificar
-        optr->face_table[i].Ncam[0] = optr->face_table[i].N[0];
-        optr->face_table[i].Ncam[1] = optr->face_table[i].N[1];
-        optr->face_table[i].Ncam[2] = optr->face_table[i].N[2];
+        mxv(optr->face_table[i].Ncam, modelview, optr->face_table[i].N);
+        normalize_vector(optr->face_table[i].Ncam);
     }
 }
 
@@ -649,12 +693,53 @@ void dibujar_triangulo(
     }
     glEnd();
 }
+void draw_face_normal(object3d *optr, int ti)
+{
+    point3 center, tip, projected_center, projected_tip;
+    point3 vertex;
+    double *N = optr->face_table[ti].Ncam;
+    int vertex_count = optr->face_table[ti].num_vertices;
+    int i;
+
+    center.x = 0.0;
+    center.y = 0.0;
+    center.z = 0.0;
+    for (i = 0; i < vertex_count; i++)
+    {
+        vertex = optr->vertex_table[optr->face_table[ti].vertex_ind_table[i]].camcoord;
+        center.x += vertex.x;
+        center.y += vertex.y;
+        center.z += vertex.z;
+    }
+    center.x /= vertex_count;
+    center.y /= vertex_count;
+    center.z /= vertex_count;
+
+    tip.x = center.x + 0.1 * N[0];
+    tip.y = center.y + 0.1 * N[1];
+    tip.z = center.z + 0.1 * N[2];
+
+    // no puedo dejar que la punta quede detras del plano near
+    if (tip.z > -view_near)
+        return;
+
+    mxp(&projected_center, projection_matrix, center);
+    mxp(&projected_tip, projection_matrix, tip);
+
+    glColor3ub(0, 255, 0); // verde
+    glBegin(GL_LINES);
+    glVertex3f(projected_center.x, projected_center.y, projected_center.z);
+    glVertex3f(projected_tip.x, projected_tip.y, projected_tip.z);
+    glEnd();
+}
 
 void dibujar_poligono(object3d *optr, int ti)
 {
     int i, ind0, ind1, ind2;
     int atzeaurpegiada;
     double *Nkam;
+    double view_dot;
+    point3 *first_vertex;
 
     if (ti >= optr->num_faces)
         return;
@@ -663,7 +748,6 @@ void dibujar_poligono(object3d *optr, int ti)
     ind1 = optr->face_table[ti].vertex_ind_table[1];
     ind2 = optr->face_table[ti].vertex_ind_table[2];
 
-    // TODO decidir si hay que dibujar o no: no dibujar lo que quede fuera del volumen de vista
     // no dibujar el poligono si algun vertice esta detras del plano near
     for (i = 0; i < optr->face_table[ti].num_vertices; i++)
     {
@@ -672,8 +756,21 @@ void dibujar_poligono(object3d *optr, int ti)
     }
 
     atzeaurpegiada = 0;
-    // TODO ¿es cara trasera?
-    // atzeaurpegiada = ...
+    // ¿es cara trasera?
+    Nkam = optr->face_table[ti].Ncam;
+    if (paralelo == 1)
+    {
+        // en paralelo el observador esta siempre en direcion (0,0,1)
+        view_dot = Nkam[2];
+    }
+    else
+    {
+        // en perspectira el observador esta en el origna
+        first_vertex = &optr->vertex_table[ind0].camcoord;
+        view_dot = -(Nkam[0] * first_vertex->x + Nkam[1] * first_vertex->y + Nkam[2] * first_vertex->z);
+    }
+    atzeaurpegiada = (view_dot < 0.0);
+
     if ((!atzearpegiakmarraztu) && atzeaurpegiada)
     {
         // Eliminación de caras traseras (back culling)...
@@ -681,12 +778,14 @@ void dibujar_poligono(object3d *optr, int ti)
     }
     if (optr->texturaduna == 0)
     {
-        // TODO calcular el color de cada vértice: según las luces, la cámara y la orientación del objeto.
+        //  calcular el color de cada vértice: según las luces, la cámara y la orientación del objeto.
         argien_kalkulua_egin(optr, ti);
     }
     // si ha llegado hasta aquí, debo dibujar todos sus triángulos
     for (i = 1; i < (optr->face_table[ti].num_vertices - 1); i++) // dibujar por triángulos: con 4 vértices, dos triángulos; con cinco, 3...
         dibujar_triangulo(optr, ti, i, atzeaurpegiada);
+    if (normalak_marraztu == 1)
+        draw_face_normal(optr, ti);
 }
 
 static void marraztu(void)
@@ -712,7 +811,7 @@ static void marraztu(void)
         if (denak == 0)
             glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     }
-    // TODO obtener la matriz que pasa al sistema de referencia del observador o de la cámara
+    //  obtener la matriz que pasa al sistema de referencia del observador o de la cámara
     get_mcsr(MCSR);
     get_projection_matrix(projection_matrix);
 
@@ -725,9 +824,10 @@ static void marraztu(void)
             // printf("objektuak marraztera\n");
             for (auxptr = foptr; auxptr != 0; auxptr = auxptr->hptr)
             {
-                // TODO indicar en la propia estructura del objeto cómo lo ve la cámara.
+                if (objektuaren_ikuspegia == 1 && auxptr == sel_ptr)
+                    continue;
+                //  indicar en la propia estructura del objeto cómo lo ve la cámara.
                 kam_ikuspegia_lortu(auxptr);
-                // printf("objektua kameraren ikuspegian daukat\n");
                 for (i = 0; i < auxptr->num_faces; i++)
                 {
                     dibujar_poligono(auxptr, i);
@@ -736,7 +836,7 @@ static void marraztu(void)
         }
         else
         {
-            // TODO indicar en la propia estructura del objeto cómo lo ve la cámara.
+            //  indicar en la propia estructura del objeto cómo lo ve la cámara.
             kam_ikuspegia_lortu(sel_ptr);
             for (i = 0; i < sel_ptr->num_faces; i++)
             {
@@ -746,7 +846,7 @@ static void marraztu(void)
     }
     else
     {
-        // TODO indicar en la propia estructura del objeto cómo lo ve la cámara.
+        //  indicar en la propia estructura del objeto cómo lo ve la cámara.
         kam_ikuspegia_lortu(sel_ptr);
         dibujar_poligono(sel_ptr, indexx);
     }
@@ -755,6 +855,56 @@ static void marraztu(void)
 
 void obj_normalak_kalkulatu(object3d *optr)
 {
+    int i, j;
+    int *indices;
+    point3 p0, p1, p2;
+    double u[3], v[3];
+    double *N;
+
+    for (i = 0; i < optr->num_vertices; i++)
+    {
+
+        optr->vertex_table[i].N[0] = 0.0;
+        optr->vertex_table[i].N[1] = 0.0;
+        optr->vertex_table[i].N[2] = 0.0;
+    }
+    for (i = 0; i < optr->num_faces; i++)
+    {
+        indices = optr->face_table[i].vertex_ind_table;
+        N = optr->face_table[i].N;
+
+        p0 = optr->vertex_table[indices[0]].coord;
+        p1 = optr->vertex_table[indices[1]].coord;
+        p2 = optr->vertex_table[indices[2]].coord;
+
+        u[0] = p1.x - p0.x;
+        u[1] = p1.y - p0.y;
+        u[2] = p1.z - p0.z;
+
+        v[0] = p2.x - p0.x;
+        v[1] = p2.y - p0.y;
+        v[2] = p2.z - p0.z;
+
+        // NORMAL cara u x v
+        N[0] = u[1] * v[2] - u[2] * v[1];
+        N[1] = u[2] * v[0] - u[0] * v[2];
+        N[2] = u[0] * v[1] - u[1] * v[0];
+        normalize_vector(N);
+
+        // sumar la normal de la cara a cada vértice de la cara
+        for (j = 0; j < optr->face_table[i].num_vertices; j++)
+        {
+            optr->vertex_table[indices[j]].N[0] += N[0];
+            optr->vertex_table[indices[j]].N[1] += N[1];
+            optr->vertex_table[indices[j]].N[2] += N[2];
+        }
+    }
+
+    // normal del vertice = suma de normales de las caras que lo contienen
+    for (i = 0; i < optr->num_vertices; i++)
+    {
+        normalize_vector(optr->vertex_table[i].N);
+    }
 }
 
 void read_from_file(char *fitx, object3d **foptrptr)
@@ -817,7 +967,7 @@ void get_object_center(point3 *center)
     local_center.z = (sel_ptr->max.z + sel_ptr->min.z) / 2.0;
 
     // pasarla al mundo
-    mxp(center, sel_ptr->mptr->m, loca_center);
+    mxp(center, sel_ptr->mptr->m, local_center);
 }
 
 // girar la camara alrededor del centro del objeto: M_cam · T(Cc) · R · T(-Cc)
@@ -1392,7 +1542,7 @@ static void teklatua(unsigned char key, int x, int y)
             else
             {
                 kamera = 0;
-                ald_lokala = 1; // me pondré en modo vuelo
+                ald_lokala = 1; //  en modo vuelo
                 printf("objektua aldatzera zoaz (aldaketa lokala daukazu) \n");
             }
         }
@@ -1703,7 +1853,7 @@ int main(int argc, char **argv)
     // volumen
     view_half_width = 1.0;
     view_half_height = 1.0;
-    view_near = 1.0;
+    view_near = 0.1;
     view_far = 10.0;
 
     // TODO Inicializar las luces
