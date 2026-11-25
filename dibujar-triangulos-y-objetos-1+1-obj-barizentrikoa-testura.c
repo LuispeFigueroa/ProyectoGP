@@ -48,6 +48,16 @@ double view_near;
 double view_far;
 double projection_matrix[16];
 
+// luces
+#define SUN 0
+#define BULB 1
+#define OBJECT_SPOT 2
+#define CAMERA_SPOT 3
+#define LIGHT_COUNT 4
+
+color3 ambient_light;      // Ia: luz ambiental
+light lights[LIGHT_COUNT]; // array de luces
+
 // Multiplicar m1 por m2 y guardar el resultado en la matriz m.
 void mxm(double *m, double *m1, double *m2)
 {
@@ -912,14 +922,14 @@ void read_from_file(char *fitx, object3d **foptrptr)
     int i, retval;
     object3d *optr;
 
-    printf("%s fitxategitik datuak hartzera\n", fitx);
+    printf("leyendo datos del archivo %s\n", fitx);
     optr = (object3d *)malloc(sizeof(object3d));
     optr->rgb.r = 0;
     // int read_wavefront(char * file_name, object3d * object_ptr) {
     retval = read_wavefront(fitx, optr);
     if (retval != 0)
     {
-        printf("%s fitxategitik datuak hartzerakoan arazoak izan ditut\n", fitxiz);
+        printf("problemas al leer los datos del archivo %s\n", fitx);
         free(optr);
     }
     else
@@ -939,6 +949,22 @@ void read_from_file(char *fitx, object3d **foptrptr)
         optr->hptr = *foptrptr;
         *foptrptr = optr;
         // printf("calcular las normales\n");
+        // iniciar luces
+        // material del objeto (0-1 por canal); el color de la superficie es rgb
+        optr->ka.r = 0.2;
+        optr->ka.g = 0.2;
+        optr->ka.b = 0.2;
+
+        optr->kd.r = 0.8;
+        optr->kd.g = 0.8;
+        optr->kd.b = 0.8;
+
+        optr->ks.r = 0.5;
+        optr->ks.g = 0.5;
+        optr->ks.b = 0.5;
+
+        optr->ns = 20;
+
         // for (i = 0; i< optr->num_vertices; i++) printf("%lf %lf %lf\n", optr->vertex_table[i].coord.x,optr->vertex_table[i].coord.y,optr->vertex_table[i].coord.z);
         obj_normalak_kalkulatu(optr);
         sel_ptr = optr;
@@ -1523,13 +1549,13 @@ static void teklatua(unsigned char key, int x, int y)
             if (objektuaren_ikuspegia == 1) // si estoy en la vista del objeto, puedo pasar a modificar las luces, no a modificar la cámara.
             {
                 kamera = 2;
-                printf("argiak aldatzera zoaz (objektuaren ikuspegian zaude)\n");
+                printf("vas a modificar las luces (estás en la vista del objeto)\n");
             }
             else
             {
                 kamera = 1;
                 ald_lokala = 1; // me pondré en modo vuelo
-                printf("kamera aldatzera zoaz (hegaldi moduan zaude)\n");
+                printf("vas a modificar la cámara (estás en modo vuelo)\n");
             }
         }
         else
@@ -1537,13 +1563,13 @@ static void teklatua(unsigned char key, int x, int y)
             if (kamera == 1)
             {
                 kamera = 2;
-                printf("argia aldatzera zoaz \n");
+                printf("vas a modificar las luces\n");
             }
             else
             {
                 kamera = 0;
                 ald_lokala = 1; //  en modo vuelo
-                printf("objektua aldatzera zoaz (aldaketa lokala daukazu) \n");
+                printf("vas a modificar el objeto (transformación local)\n");
             }
         }
         break;
@@ -1558,7 +1584,7 @@ static void teklatua(unsigned char key, int x, int y)
                 kamera = 0;
             }
             ald_lokala = 1;
-            printf("objektuaren ikuspegian sartu zara eta aldaketak era lokalean eragingo dituzu \n");
+            printf("has entrado en la vista del objeto y las transformaciones serán locales\n");
         }
         break;
     case 'l':
@@ -1569,34 +1595,34 @@ static void teklatua(unsigned char key, int x, int y)
         break;
     case 't':
         aldaketa = 't';
-        printf("traslazioak\n");
+        printf("traslaciones\n");
         break;
     case 'r':
         aldaketa = 'r';
-        printf("biraketak\n");
+        printf("rotaciones\n");
         break;
     case 'n':
         if (normalak_marraztu == 0)
         {
             normalak_marraztu = 1;
-            printf("normalak marraztuko dira\n");
+            printf("se dibujarán las normales\n");
         }
         else
         {
             normalak_marraztu = 0;
-            printf("normalak ez dira marraztuko\n");
+            printf("no se dibujarán las normales\n");
         }
         break;
     case 'b':
         if (atzearpegiakmarraztu == 1)
         {
             atzearpegiakmarraztu = 0;
-            printf("atze-aurpegiak ez dira marraztuko\n");
+            printf("no se dibujarán las caras traseras\n");
         }
         else
         {
             atzearpegiakmarraztu = 1;
-            printf("atze aurpegiak gorriz marraztuko dira\n");
+            printf("las caras traseras se dibujarán en rojo\n");
         }
         break;
     case 'g':
@@ -1615,7 +1641,7 @@ static void teklatua(unsigned char key, int x, int y)
                 ald_lokala = 1;
         }
         else
-            printf("objektuaren ikuspegian aldaketak beti lokalak dira\n");
+            printf("en la vista del objeto las transformaciones siempre son locales\n");
         break;
     case 'x':
         x_aldaketa(1);
@@ -1642,12 +1668,12 @@ static void teklatua(unsigned char key, int x, int y)
     case 'p':
         if (paralelo == 1)
         {
-            printf("perspektiban agertu behar du\n");
+            printf("proyección en perspectiva\n");
             paralelo = 0;
         }
         else
         {
-            printf("paraleloan agertu behar du\n");
+            printf("proyección paralela\n");
             paralelo = 1;
         }
         break;
@@ -1655,12 +1681,12 @@ static void teklatua(unsigned char key, int x, int y)
         if (flatmode == 0)
         {
             flatmode = 1;
-            printf("argiztapen finkoa poligono osoan\n");
+            printf("iluminación constante en todo el polígono\n");
         }
         else
         {
             flatmode = 0;
-            printf("argiztapen suabizatua\n");
+            printf("iluminación suavizada\n");
         }
         break;
     case '1':
@@ -1688,6 +1714,7 @@ static void teklatua(unsigned char key, int x, int y)
             }
             else
             {
+
                 // kamaera ==0, escalar el objeto (agrandar)
                 if (sel_ptr != 0)
                 {
@@ -1745,7 +1772,7 @@ static void teklatua(unsigned char key, int x, int y)
         break;
     case 'f':
         /* Pedir archivo */
-        printf("idatzi fitxategi izena\n");
+        printf("escribe el nombre del archivo\n");
         scanf("%s", &(fitxiz[0]));
         read_from_file(fitxiz, &foptr);
         indexx = 0;
@@ -1835,7 +1862,7 @@ int main(int argc, char **argv)
     objektuaren_ikuspegia = 0;
     normalak_marraztu = 0;
     flatmode = 0;
-    paralelo = 1;
+    paralelo = 0;
     atzearpegiakmarraztu = 1;
     // nicializar la cámara: al principio está en la posición (0,0,2.5)
     camera_ptr = (mlist *)malloc(sizeof(mlist));
@@ -1856,7 +1883,60 @@ int main(int argc, char **argv)
     view_near = 0.1;
     view_far = 10.0;
 
-    // TODO Inicializar las luces
+    //  Inicializar las luces
+    ambient_light.r = 0.2;
+    ambient_light.g = 0.2;
+    ambient_light.b = 0.2;
+
+    //
+    for (i = 0; i < LIGHT_COUNT; i++)
+    {
+        lights[i].onoff = 0;
+        lights[i].type = 0;
+        lights[i].I.r = 0.0;
+        lights[i].I.g = 0.0;
+        lights[i].I.b = 0.0;
+        lights[i].pos[0] = lights[i].pos[1] = lights[i].pos[2] = 0.0;
+        lights[i].dir[0] = lights[i].dir[1] = lights[i].dir[2] = 0.0;
+        lights[i].campos[0] = lights[i].campos[1] = lights[i].campos[2] = 0.0;
+        lights[i].camdir[0] = lights[i].camdir[1] = lights[i].camdir[2] = 0.0;
+        lights[i].aperture = 0.0;
+    }
+    // sol
+    lights[SUN].onoff = 1;
+    lights[SUN].type = 0;
+    lights[SUN].I.r = 0.8;
+    lights[SUN].I.g = 0.8;
+    lights[SUN].I.b = 0.8;
+    lights[SUN].dir[0] = 0.0;
+    lights[SUN].dir[1] = -1.0;
+    lights[SUN].dir[2] = -1.0;
+    normalize_vector(lights[SUN].dir);
+
+    // bombilla
+    lights[BULB].type = 1;
+    lights[BULB].I.r = 0.8;
+    lights[BULB].I.g = 0.8;
+    lights[BULB].I.b = 0.8;
+    lights[BULB].pos[0] = 0.0;
+    lights[BULB].pos[1] = 2.0;
+    lights[BULB].pos[2] = 2.0;
+
+    // foco del objeto, posicion y direccion en coordenadas del objeto
+    lights[OBJECT_SPOT].type = 2;
+    lights[OBJECT_SPOT].I.r = 0.8;
+    lights[OBJECT_SPOT].I.g = 0.8;
+    lights[OBJECT_SPOT].I.b = 0.8;
+    lights[OBJECT_SPOT].dir[2] = 1.0;           // hacia el morro (+z)
+    lights[OBJECT_SPOT].aperture = 0.866025404; // cos(30)
+
+    // linterna / focode la cámara
+    lights[CAMERA_SPOT].type = 2;
+    lights[CAMERA_SPOT].I.r = 0.8;
+    lights[CAMERA_SPOT].I.g = 0.8;
+    lights[CAMERA_SPOT].I.b = 0.6;              // algo amarilla
+    lights[CAMERA_SPOT].dir[2] = -1.0;          // hacia donde mira la camara
+    lights[CAMERA_SPOT].aperture = 0.939692621; // cos(20)
 
     if (argc > 1)
         read_from_file(argv[1], &foptr);
